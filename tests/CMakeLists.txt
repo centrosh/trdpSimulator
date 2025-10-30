@@ -1,0 +1,4 @@
+add_executable(trdp_sim_engine_tests test_engine.cpp)
+target_link_libraries(trdp_sim_engine_tests PRIVATE trdp_simulator)
+target_compile_features(trdp_sim_engine_tests PRIVATE cxx_std_20)
+add_test(NAME engine COMMAND trdp_sim_engine_tests)
