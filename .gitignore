@@ -1,7 +1,13 @@
-__pycache__/
-*.py[cod]
-*.egg-info/
-.env
-.venv
-.pytest_cache/
-.mypy_cache/
+# Build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+# Editor files
+*.swp
+.idea/
+.vscode/
+.DS_Store

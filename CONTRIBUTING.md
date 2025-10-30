@@ -6,45 +6,40 @@ review.
 
 ## Coding Standards
 
-- **Language:** Python 3.11+ for orchestration logic. The TRDP C wrapper
-  will be encapsulated behind Python interfaces so it can be swapped with
-  native modules later.
-- **Style:** Follow [PEP 8] with a 100-character line limit enforced via
-  `ruff`. Docstrings use the NumPy style to aid documentation tooling.
-- **Type Hints:** All new public functions and classes must include
-  Python type hints. Enable `from __future__ import annotations` in new
-  modules to avoid runtime imports.
-- **Error Handling:** Wrap TRDP error codes in typed exceptions and avoid
-  swallowing stack traces. Use `RuntimeError` placeholders until the
-  concrete wrapper is implemented.
-- **Logging & Telemetry:** Prefer structured logging (JSON or key/value)
-  and emit telemetry events through the telemetry subsystem.
+- **Language:** C++20 for the simulator core and CLI utilities.
+- **Style:** Follow the [C++ Core Guidelines] and keep lines under
+  120 characters. Use `clang-format` with the LLVM style as a baseline.
+- **Error Handling:** Prefer exceptions for recoverable issues and
+  document invariants in header files. Avoid silent failures.
+- **Logging & Telemetry:** Provide structured data via dedicated helper
+  utilities in the communication layer. Avoid direct `std::cout`
+  logging in library code.
 
 ## Testing Strategy
 
-- **Unit Tests:** Use `pytest` for unit testing. Each new module should
-  include tests for happy-path and failure-path behaviour.
-- **Integration Tests:** Provide lightweight TRDP mocks to run
-  integration tests without the native stack. Integration tests will live
-  under `tests/integration/` once implemented.
-- **Coverage:** Keep coverage above 85% for new code. Run `pytest --cov`
-  locally before opening a PR when coverage-sensitive changes are made.
-- **Static Analysis:** Run `ruff check` locally and ensure CI passes
-  before submitting changes. Future work will add type checking via
-  `mypy` once interfaces stabilise.
+- **Unit Tests:** Implement using CTest-compatible executables. Each new
+  module should exercise both success and failure flows.
+- **Integration Tests:** Provide lightweight TRDP mocks to run integration
+  tests without the native stack. Integration tests will live under
+  `tests/integration/` once implemented.
+- **Coverage:** Keep coverage above 85% for new code. Integrate with
+  `gcov`/`llvm-cov` tooling as part of future work.
+- **Static Analysis:** Enable `-Wall -Wextra -Wpedantic` warnings and
+  address new findings before merging.
 
 ## Development Workflow
 
 1. Fork the repository and create a feature branch following the naming
    convention `feature/<short-description>`.
-2. Install dependencies with `make install` (requires Python 3.11).
-3. Run `make check` to execute linting and tests before committing.
+2. Configure the project with `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug`.
+3. Build and run tests locally via `cmake --build build` and
+   `ctest --test-dir build`.
 4. Write clear commit messages using the imperative mood (e.g., "Add
-   scenario loader").
+   scenario scheduler").
 5. Open a pull request referencing any relevant issue IDs (see
    [`docs/issue-tracker.md`](docs/issue-tracker.md)).
-6. Ensure the PR includes a summary, testing notes, and screenshots for
-   UI changes.
+6. Ensure the PR includes a summary, testing notes, and screenshots for UI
+   changes.
 
 ## Code Review Guidelines
 
@@ -58,7 +53,7 @@ review.
 ## Branch Protection & CI
 
 - The `main` branch is protected. Merges require at least one approving
-  review and a passing CI run (`lint` + `pytest`).
+  review and a passing CI run (configure, build, test).
 - CI is configured via GitHub Actions in `.github/workflows/ci.yml`.
 
 ## Release Management
@@ -72,4 +67,4 @@ review.
 Please report security vulnerabilities privately to the maintainers. Do
 not open public issues containing sensitive details.
 
-[PEP 8]: https://peps.python.org/pep-0008/
+[C++ Core Guidelines]: https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines

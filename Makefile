@@ -1,20 +1,16 @@
-.PHONY: install lint test format check e2e
+.PHONY: configure build test clean
 
-install:
-	pip install --upgrade pip
-	pip install -e .[dev]
+BUILD_DIR ?= build
 
-lint:
-	ruff check src tests
+configure:
+	cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-format:
-	ruff format src tests
-	ruff check --fix-only --exit-zero src tests
+build: configure
+	cmake --build $(BUILD_DIR)
 
-e2e:
-	@echo "No end-to-end tests defined yet"
+test: configure
+	cmake --build $(BUILD_DIR)
+	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
-test:
-	pytest
-
-check: lint test
+clean:
+	rm -rf $(BUILD_DIR)
