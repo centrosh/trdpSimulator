@@ -43,7 +43,8 @@ simulator runtime, continuous integration, and contributor workflows.
 - [`docs/operations-handbook.md`](docs/operations-handbook.md) – distribution,
   release, maintenance, and support procedures.
 - [`docs/TCNOpen_TRDP.md`](docs/TCNOpen_TRDP.md) – guidance for adding the
-  TCNOpen TRDP stack as a git submodule using the maintained mirror.
+  TCNOpen TRDP stack as a git submodule, building its static libraries, and
+  linking them into the simulator.
 
 ## Distribution
 
