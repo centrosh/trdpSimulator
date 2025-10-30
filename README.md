@@ -40,3 +40,14 @@ simulator runtime, continuous integration, and contributor workflows.
   user stories.
 - [`docs/issue-tracker.md`](docs/issue-tracker.md) – prioritised backlog
   aligned with milestones.
+- [`docs/operations-handbook.md`](docs/operations-handbook.md) – distribution,
+  release, maintenance, and support procedures.
+
+## Distribution
+
+The simulator can be consumed either as a Docker image or as a Python package.
+
+- **Docker:** Run `scripts/build_docker.sh <image-tag>` to produce a runtime image based on
+  `docker/Dockerfile`, then push it via `scripts/publish_docker.sh <image-tag> <registry>`.
+- **Python package:** Use `scripts/build_python_package.sh` to generate wheel and sdist artefacts,
+  then publish with `scripts/publish_python_package.sh [repository-url]`.
