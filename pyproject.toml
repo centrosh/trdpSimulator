@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trdp-simulator"
+version = "0.1.0"
+description = "Scaffolding package for the TRDP Simulator"
+readme = "README.md"
+authors = [
+    { name = "TRDP Simulator Team" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+keywords = ["trdp", "rail", "simulation"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+trdp-sim = "trdp_simulator.cli.main:run_cli"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra"
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "TID"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
