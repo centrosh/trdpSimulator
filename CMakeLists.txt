@@ -23,6 +23,23 @@ target_compile_features(trdp_simulator PUBLIC cxx_std_20)
 add_executable(trdp_sim_cli src/main.cpp)
 target_link_libraries(trdp_sim_cli PRIVATE trdp_simulator)
 
+include(GNUInstallDirs)
+
+install(TARGETS trdp_simulator trdp_sim_cli
+    EXPORT trdpSimulatorTargets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT trdpSimulatorTargets
+    NAMESPACE trdpSimulator::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/trdpSimulator
+)
+
 if(BUILD_TESTING)
     include(CTest)
     add_subdirectory(tests)
