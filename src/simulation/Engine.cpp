@@ -1,9 +1,16 @@
 #include "trdp_simulator/simulation/Engine.hpp"
 
+#include "trdp_simulator/communication/Types.hpp"
+
 #include <stdexcept>
 #include <utility>
 
 namespace trdp::simulation {
+
+using communication::MessageDataAck;
+using communication::MessageDataMessage;
+using communication::MessageDataStatus;
+using communication::ProcessDataMessage;
 
 SimulationEngine::SimulationEngine(communication::Wrapper &wrapper)
     : m_wrapper(wrapper) {}
@@ -25,18 +32,37 @@ void SimulationEngine::run() {
         m_wrapper.open();
     }
 
-    for (const auto &event : m_events) {
-        switch (event.type) {
-        case ScenarioEvent::Type::ProcessData:
-            m_wrapper.publishProcessData(event.label);
-            break;
-        case ScenarioEvent::Type::MessageData:
-            m_wrapper.sendMessageData(event.label);
-            break;
+    try {
+        for (const auto &event : m_events) {
+            switch (event.type) {
+            case ScenarioEvent::Type::ProcessData: {
+                ProcessDataMessage message{event.label, event.comId, event.datasetId, event.payload};
+                m_wrapper.publishProcessData(message);
+                break;
+            }
+            case ScenarioEvent::Type::MessageData: {
+                MessageDataMessage message{event.label, event.comId, event.datasetId, event.payload};
+                const MessageDataAck ack = m_wrapper.sendMessageData(message);
+                if (ack.status != MessageDataStatus::Delivered) {
+                    throw std::runtime_error("Message data send failed: " + ack.detail);
+                }
+                break;
+            }
+            }
+            m_wrapper.poll();
         }
+        m_wrapper.close();
+    } catch (...) {
+        if (m_wrapper.isOpen()) {
+            try {
+                m_wrapper.close();
+            } catch (...) {
+                // Swallow close failure while propagating original exception.
+            }
+        }
+        m_loaded = false;
+        throw;
     }
-
-    m_wrapper.close();
     m_loaded = false;
 }
 
