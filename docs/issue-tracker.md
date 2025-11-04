@@ -11,6 +11,10 @@ story-point estimate.
 | COMM-2 | Implement PD publish wrapper with retry policy | Milestone 1 | P0 | 5 |
 | COMM-3 | Implement MD send/receive with callbacks | Milestone 1 | P0 | 5 |
 | COMM-4 | Add diagnostic hooks for TRDP layer | Milestone 1 | P1 | 3 |
+| CONF-1 | Implement device XML ingestion CLI | Milestone 2 | P0 | 5 |
+| CONF-2 | Add XML schema validation pipeline | Milestone 2 | P0 | 5 |
+| CONF-3 | Persist device catalogue manifest | Milestone 2 | P1 | 3 |
+| CONF-4 | Document XML upload & validation workflow | Milestone 2 | P1 | 2 |
 | ENG-1 | Load scenario definitions from YAML | Milestone 2 | P0 | 5 |
 | ENG-2 | Implement event scheduler for scenario timelines | Milestone 2 | P0 | 8 |
 | ENG-3 | Provide deterministic replay telemetry export | Milestone 2 | P1 | 5 |

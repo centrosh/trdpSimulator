@@ -4,12 +4,13 @@ The approved architecture in [`design.md`](design.md) is decomposed into
 incremental milestones to enable iterative delivery. Each milestone
 contains themed user stories that can be executed independently.
 
-## Milestone 1 – Communication Core Bootstrap
+## Milestone 1 – Communication Core Bootstrap ✅ Completed
 - **Goal:** Provide a thin C++ wrapper around the TRDP stack and exercise
   basic PD/MD telegram flows.
 - **Duration:** 2 sprints
 - **Exit Criteria:** Automated tests proving PD publish, MD send, and
-  callback hooks.
+  callback hooks. *Status:* Achieved via the loopback stack adapter,
+  `tests/test_wrapper.cpp`, and `tests/test_engine.cpp`.
 
 ### User Stories
 1. *As a simulator developer, I can initialise and shutdown the TRDP
@@ -25,10 +26,12 @@ contains themed user stories that can be executed independently.
 
 ## Milestone 2 – Scenario Orchestration Engine
 - **Goal:** Build the deterministic scheduler that executes scenarios and
-  coordinates with the communication layer.
+  coordinates with the communication layer. This milestone also introduces the
+  device XML ingestion and validation workflow captured in
+  [`docs/milestone-2-plan.md`](milestone-2-plan.md).
 - **Duration:** 3 sprints
-- **Exit Criteria:** Scenario runner supporting configurable timetables
-  and verifying expected telegrams via automated tests.
+- **Exit Criteria:** Scenario runner supporting configurable timetables,
+  validated device profiles, and verifying expected telegrams via automated tests.
 
 ### User Stories
 1. *As a simulation engineer, I can load scenario definitions from YAML
@@ -42,7 +45,9 @@ contains themed user stories that can be executed independently.
 
 ## Milestone 3 – Scenario Repository & Persistence
 - **Goal:** Persist reusable scenarios and simulation artefacts with
-  validation.
+  validation. The scenario catalogue and CLI management tooling now exist; the
+  remaining work focuses on formal schemas, artefact persistence, and replay
+  workflows.
 - **Duration:** 2 sprints
 - **Exit Criteria:** Repository service storing scenarios, schema
   validation, and artefact export CLI.
