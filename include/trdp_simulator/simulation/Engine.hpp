@@ -2,6 +2,7 @@
 
 #include "trdp_simulator/communication/Wrapper.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,9 @@ struct ScenarioEvent {
 
     Type type;
     std::string label;
+    std::uint32_t comId{0};
+    std::uint32_t datasetId{0};
+    std::vector<std::uint8_t> payload;
 };
 
 class SimulationEngine {
