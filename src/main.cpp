@@ -1,6 +1,7 @@
 #include "trdp_simulator/communication/Types.hpp"
 #include "trdp_simulator/communication/TrdpError.hpp"
 #include "trdp_simulator/communication/Wrapper.hpp"
+#include "trdp_simulator/communication/TrdpError.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
 
 #include <exception>
