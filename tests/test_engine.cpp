@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+using trdp::communication::DiagnosticEvent;
+
 using trdp::communication::Wrapper;
 using trdp::simulation::ScenarioEvent;
 using trdp::simulation::SimulationEngine;
@@ -32,6 +34,12 @@ int main() {
     const std::string closeSuffix{"| close"};
     assert(lastEntry.size() >= closeSuffix.size());
     assert(lastEntry.compare(lastEntry.size() - closeSuffix.size(), closeSuffix.size(), closeSuffix) == 0);
+
+    const auto &diagnostics = wrapper.diagnostics();
+    assert(diagnostics.size() == telemetry.size());
+    for (const auto &event : diagnostics) {
+        assert(event.level == DiagnosticEvent::Level::Info);
+    }
 
     return 0;
 }

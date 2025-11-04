@@ -27,9 +27,14 @@ simulator runtime, continuous integration, and contributor workflows.
    ```bash
    make test
    ```
-4. Execute the demo CLI (placeholder implementation):
+4. Execute the demo CLI and provide a scenario name. You can optionally pass
+   a TRDP endpoint and PD/MD events to exercise the wrapper without a network
+   connection:
    ```bash
-   ./build/trdp_sim_cli demo-scenario
+   ./build/trdp_sim_cli demo-scenario \
+       --endpoint 127.0.0.1 \
+       --event pd:doors-close \
+       --event md:departure
    ```
 
 ## Documentation

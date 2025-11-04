@@ -135,7 +135,9 @@ sequenceDiagram
 ## 4. Module Specifications and TRDP API Interfaces
 ### 4.1 Communication Layer Wrapper
 The communication layer is implemented as a thin wrapper around the
-TCNopen TRDP C APIs. The C++ façade exposes the following abstractions:
+TCNopen TRDP C APIs. An intermediate `StackAdapter` interface isolates the
+simulator from the concrete TRDP integration so unit tests can inject
+deterministic behaviour. The C++ façade exposes the following abstractions:
 
 ```cpp
 class TrdpContext {
