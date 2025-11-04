@@ -17,59 +17,56 @@ stack, the current implementation provides a deterministic seam for higher-level
 scenarios and validates callback wiring. Subsequent development should build on
 this foundation to ingest real device profiles and orchestrate scenarios.
 
-## 2. Accept and Validate Device XML Profiles
+## 2. Milestone 2 – Device & Scenario Orchestration ✅ Completed
 
-With the communication core in place, enable operators to supply device-under-
-test profiles. A dedicated implementation plan is tracked in
-[`docs/milestone-2-plan.md`](milestone-2-plan.md); the highlights are summarised
-here for quick reference:
+The simulator now ingests TRDP XML via `DeviceProfileRepository`, validates
+uploads with the bundled schema, and persists metadata for auditing. Scenarios
+are parsed through `ScenarioParser`, catalogued by `ScenarioRepository`, and can
+be imported, listed, and exported directly from the CLI. Automated tests cover
+the repository lifecycle, and documentation has been refreshed so operators can
+register devices, manage scenarios, and run loopback simulations end-to-end.
 
-1. **Ingestion path:** Extend the scenario loader (see
-   [`docs/design.md`](design.md#14-ui--cli-layer)) to accept raw TRDP XML files.
-   Provide a CLI flag (e.g., `--device-xml /path/to/device.xml`) and REST upload
-   endpoint so users can register device profiles on the simulator host.
-2. **Validation:** Integrate the upstream helpers documented in
-   [`docs/trdp_xml_examples.md`](trdp_xml_examples.md) by wrapping the
-   `trdp-xmlprint-test` utility or invoking an XSD validator. Reject malformed
-   XML before it reaches the runtime and return actionable error reports.
-3. **Configuration catalogue:** Persist approved XML files under a managed
-   directory (for example `~/.trdp-simulator/devices/`) and reference them by ID
-   in scenarios. Track metadata (checksum, timestamp, validation result) so QA
-   and operators can audit changes.
+The next phase builds on this foundation to introduce durable storage and
+replayable artefacts.
 
-Deliverables include automated tests that feed known-good and intentionally
-broken XML samples through the validation pipeline and check for the expected
-responses, alongside documentation updates that walk operators through the new
-workflow.
+## 3. Milestone 3 – Scenario Repository & Persistence
 
-## 3. Build Editing Surfaces for Device Configuration
+With the catalogue online, focus shifts to the persistence stories outlined in
+[`docs/milestones.md`](milestones.md#milestone-3--scenario-repository--persistence):
 
-Once ingestion and validation exist, expose editing capabilities aligned with
-Milestone 4 (UI & Automation Interfaces):
+1. **Formal scenario schema:** Publish JSON/YAML schemas and integrate them with
+   the validation pipeline (CLI flag and CI job) so scenario changes are gated by
+   automated checks.
+2. **Run artefact persistence:** Extend `SimulationEngine` to record executed
+   scenarios, diagnostics, and payload traces to disk. Link the artefacts to the
+   scenario manifest so operators can audit historical runs.
+3. **Import/export tooling:** Wrap the repository in high-level commands or
+   services that bundle scenarios with their referenced device profiles, enabling
+   movement between environments.
+4. **Automation hooks:** Expose lightweight APIs or CLI commands to fetch the
+   manifest, retrieve stored runs, and trigger replays, preparing the ground for
+   upcoming REST/UI work.
 
-- **REST API:** Add endpoints that fetch, validate, and update stored XML
-  profiles. The API should reuse the validation layer from step 2 so that
-  rejected edits return the same diagnostics.
-- **Web UI integration:** Implement UI components that present the XML (or a
-  structured form) to the operator. Provide syntax highlighting, schema-aware
-  hints, and validation feedback prior to saving changes.
-- **Version control:** Back the storage with simple versioning (Git repository
-  or timestamped snapshots) so operators can roll back to a previous
-  configuration when needed.
+## 4. Build Editing Surfaces for Device & Scenario Configuration
 
-This work can progress in parallel with the remaining Milestone 2 scenario
-orchestration stories, because validated XML profiles become a primary input for
-scenario definitions.
+Parallel to Milestone 3, begin designing REST and UI capabilities (Milestone 4):
 
-## 4. Align CI/CD and Documentation
+- **REST API:** Expose endpoints that list, validate, import, and export both
+  device profiles and scenarios, reusing the shared validation pipeline.
+- **Web UI integration:** Prototype components that surface repository
+  inventories, validation feedback, and historical run artefacts.
+- **Version control:** Evaluate lightweight versioning for both XML and scenario
+  YAML so operators can diff and roll back changes.
 
-- Update `docs/operations-handbook.md` with the validation workflow once the
-  pipeline is implemented.
-- Add CI jobs that execute the XML validation tests and run the TRDP wrappers
-  against sample configurations.
-- Document operator workflows in the README and user guides so teams know how to
-  register devices, validate XML, and launch simulations with custom profiles.
+## 5. Align CI/CD and Documentation
 
-Executing this sequence keeps development focused on delivering a usable end-to-
-end path: from accepting a customer-supplied TRDP configuration, through
-validation, to running simulations that mirror the device under test.
+- Wire the scenario repository tests and schema validators into CI so
+  regressions surface automatically.
+- Expand operator documentation to cover artefact export/import workflows and
+  historical run retrieval.
+- Keep the README and operations handbook aligned with new CLI flags and
+  services as they land.
+
+Executing this sequence keeps development focused on delivering durable, auditable
+simulation artefacts while preparing the control surfaces required by later
+milestones.

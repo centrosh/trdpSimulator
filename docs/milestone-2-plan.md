@@ -1,5 +1,8 @@
 # Milestone 2 Implementation Plan – Scenario & Device Profile Orchestration
 
+> **Status:** Delivered – device XML ingestion, schema validation, scenario
+> parser/repository, and CLI management tooling have landed in the codebase.
+
 Milestone 2 moves the simulator from a loopback proof of concept to a tool that
 can ingest customer-supplied TRDP device profiles and execute deterministic
 scenarios against the communication layer delivered in Milestone 1. This plan

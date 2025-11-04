@@ -2,6 +2,7 @@
 
 #include "trdp_simulator/device/DeviceProfileRepository.hpp"
 #include "trdp_simulator/simulation/Scenario.hpp"
+#include "trdp_simulator/simulation/ScenarioParser.hpp"
 
 #include <filesystem>
 
@@ -17,8 +18,6 @@ public:
 private:
     device::DeviceProfileRepository &m_repository;
     std::filesystem::path m_scenarioRoot;
-
-    Scenario parseScenario(const std::filesystem::path &path) const;
 };
 
 } // namespace trdp::simulation

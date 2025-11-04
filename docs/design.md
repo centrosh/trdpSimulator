@@ -189,9 +189,14 @@ Current implementation status:
 - `XmlValidator` wraps `libxml2` schema validation using the bundled
   `resources/trdp/trdp-config.xsd` so malformed profiles are rejected
   before execution.
-- `ScenarioLoader` parses a constrained YAML format, verifies referenced
-  device IDs against the repository, and exposes ordered PD/MD events to
-  the engine.
+- `ScenarioParser` enforces the constrained YAML schema (required event
+  fields, known keys, non-empty device references) and surfaces structured
+  validation errors.
+- `ScenarioRepository` persists validated scenarios alongside manifest
+  metadata (device binding, checksum, timestamps) and exposes import,
+  export, and listing APIs for the CLI and future services.
+- `ScenarioLoader` continues to hydrate scenarios from the repository for the
+  simulation engine while delegating validation to the parser.
 
 Error handling strategy:
 - Wrap TRDP error codes in typed exceptions (e.g., `TrdpError`).

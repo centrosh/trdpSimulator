@@ -45,7 +45,9 @@ contains themed user stories that can be executed independently.
 
 ## Milestone 3 – Scenario Repository & Persistence
 - **Goal:** Persist reusable scenarios and simulation artefacts with
-  validation.
+  validation. The scenario catalogue and CLI management tooling now exist; the
+  remaining work focuses on formal schemas, artefact persistence, and replay
+  workflows.
 - **Duration:** 2 sprints
 - **Exit Criteria:** Repository service storing scenarios, schema
   validation, and artefact export CLI.

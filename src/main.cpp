@@ -3,7 +3,7 @@
 #include "trdp_simulator/device/DeviceProfileRepository.hpp"
 #include "trdp_simulator/device/XmlValidator.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
-#include "trdp_simulator/simulation/ScenarioLoader.hpp"
+#include "trdp_simulator/simulation/ScenarioRepository.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -26,7 +26,7 @@ using trdp::device::DeviceProfileRepository;
 using trdp::device::XmlValidator;
 using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioEvent;
-using trdp::simulation::ScenarioLoader;
+using trdp::simulation::ScenarioRepository;
 using trdp::simulation::SimulationEngine;
 
 namespace {
@@ -35,6 +35,10 @@ struct CliOptions {
     std::string scenarioId;
     std::optional<std::filesystem::path> scenarioFile;
     std::vector<std::filesystem::path> deviceXmls;
+    std::vector<std::filesystem::path> importScenarioPaths;
+    std::vector<std::pair<std::string, std::filesystem::path>> exportScenarioRequests;
+    bool listScenarios{false};
+    bool noRun{false};
     std::string deviceProfileId;
     std::string endpoint{"127.0.0.1"};
     std::vector<ScenarioEvent> events;
@@ -120,14 +124,14 @@ struct CliOptions {
 CliOptions parseArgs(int argc, char **argv) {
     if (argc < 2) {
         throw std::invalid_argument(
-            "Usage: trdp-sim <scenario-id> [--scenario-file <path>] [--device-xml <path>]... [--device <profile-id>] "
-            "[--endpoint <ip>] [--event <pd|md>:label[:comId][:dataset][:payload]]...");
+            "Usage: trdp-sim [scenario-id] [--scenario-file <path>] [--device-xml <path>]... [--device <profile-id>] "
+            "[--endpoint <ip>] [--event <pd|md>:label[:comId][:dataset][:payload]]... "
+            "[--import-scenario <path>] [--export-scenario <id> <path>] [--list-scenarios] [--no-run]");
     }
 
     CliOptions options;
-    options.scenarioId = argv[1];
 
-    for (int i = 2; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         const std::string arg{argv[i]};
         if (arg == "--endpoint") {
             if (i + 1 >= argc) {
@@ -171,8 +175,36 @@ CliOptions parseArgs(int argc, char **argv) {
                 event.payload = parsePayloadToken(tokens[4]);
             }
             options.events.push_back(std::move(event));
-        } else {
+        } else if (arg == "--import-scenario") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--import-scenario requires a value");
+            }
+            options.importScenarioPaths.emplace_back(argv[++i]);
+        } else if (arg == "--export-scenario") {
+            if (i + 2 >= argc) {
+                throw std::invalid_argument("--export-scenario requires an id and destination");
+            }
+            const std::string id{argv[++i]};
+            const std::filesystem::path destination{argv[++i]};
+            options.exportScenarioRequests.emplace_back(id, destination);
+        } else if (arg == "--list-scenarios") {
+            options.listScenarios = true;
+        } else if (arg == "--no-run") {
+            options.noRun = true;
+        } else if (arg.rfind("--", 0) == 0) {
             throw std::invalid_argument("Unknown argument: " + arg);
+        } else {
+            if (!options.scenarioId.empty()) {
+                throw std::invalid_argument("Multiple scenario identifiers provided: " + arg);
+            }
+            options.scenarioId = arg;
+        }
+    }
+
+    if (options.scenarioId.empty() && !options.noRun && !options.scenarioFile.has_value() && options.events.empty()) {
+        const bool managementOnly = options.listScenarios || !options.importScenarioPaths.empty() || !options.exportScenarioRequests.empty();
+        if (!managementOnly) {
+            throw std::invalid_argument("Scenario identifier is required unless --no-run is specified");
         }
     }
 
@@ -196,12 +228,25 @@ void registerLoopbackLogging(Wrapper &wrapper) {
     });
 }
 
+void printScenarioRecords(const ScenarioRepository &repository) {
+    const auto records = repository.list();
+    if (records.empty()) {
+        std::cout << "No scenarios registered." << std::endl;
+        return;
+    }
+    std::cout << "Registered scenarios:" << std::endl;
+    for (const auto &record : records) {
+        std::cout << "  - " << record.id << " (device=" << record.deviceProfileId << ", path=" << record.storedPath
+                  << ", updated=" << record.updatedAt << ")" << std::endl;
+    }
+}
+
 Scenario buildInlineScenario(const CliOptions &options) {
     if (options.deviceProfileId.empty()) {
         throw std::invalid_argument("Inline events require --device <profile-id>");
     }
     Scenario scenario{};
-    scenario.id = options.scenarioId;
+    scenario.id = options.scenarioId.empty() ? "inline" : options.scenarioId;
     scenario.deviceProfileId = options.deviceProfileId;
     scenario.events = options.events;
     if (scenario.events.empty()) {
@@ -232,30 +277,47 @@ int main(int argc, char **argv) {
 
     try {
         XmlValidator validator{schemaPath};
-        DeviceProfileRepository repository{deviceRoot, validator};
+        DeviceProfileRepository deviceRepository{deviceRoot, validator};
+        ScenarioRepository scenarioRepository{scenarioRoot, deviceRepository};
 
         for (const auto &xml : options.deviceXmls) {
-            const auto id = repository.registerProfile(xml);
+            const auto id = deviceRepository.registerProfile(xml);
             std::cout << "Registered device profile '" << id << "' from " << xml << std::endl;
         }
 
+        for (const auto &path : options.importScenarioPaths) {
+            const auto id = scenarioRepository.importScenario(path);
+            std::cout << "Imported scenario '" << id << "' from " << path << std::endl;
+        }
+
+        if (options.listScenarios) {
+            printScenarioRecords(scenarioRepository);
+        }
+
+        for (const auto &[id, destination] : options.exportScenarioRequests) {
+            scenarioRepository.exportScenario(id, destination);
+            std::cout << "Exported scenario '" << id << "' to " << destination << std::endl;
+        }
+
+        if (options.noRun && !options.scenarioFile.has_value() && options.events.empty() && options.scenarioId.empty()) {
+            return 0;
+        }
+
+        const bool runScenario = !options.noRun &&
+                                 (options.scenarioFile.has_value() || !options.events.empty() || !options.scenarioId.empty());
+        if (!runScenario) {
+            return 0;
+        }
+
         Scenario scenario;
-        ScenarioLoader loader{repository, scenarioRoot};
         if (options.scenarioFile.has_value()) {
-            scenario = loader.loadFromFile(*options.scenarioFile);
-            const auto persisted = scenarioRoot / (scenario.id + ".yaml");
-            if (!scenarioRoot.empty()) {
-                std::error_code ec;
-                std::filesystem::copy_file(*options.scenarioFile, persisted,
-                                            std::filesystem::copy_options::overwrite_existing, ec);
-                if (ec) {
-                    std::cerr << "Warning: failed to persist scenario copy: " << ec.message() << std::endl;
-                }
-            }
+            const auto id = scenarioRepository.importScenario(*options.scenarioFile);
+            std::cout << "Imported scenario '" << id << "' from " << *options.scenarioFile << std::endl;
+            scenario = scenarioRepository.load(id);
         } else if (!options.events.empty() || !options.deviceProfileId.empty()) {
             scenario = buildInlineScenario(options);
         } else {
-            scenario = loader.load(options.scenarioId);
+            scenario = scenarioRepository.load(options.scenarioId);
         }
 
         Wrapper wrapper{options.endpoint};

@@ -14,7 +14,9 @@ add_library(trdp_simulator
     src/device/DeviceProfileRepository.cpp
     src/device/XmlValidator.cpp
     src/simulation/Engine.cpp
+    src/simulation/ScenarioParser.cpp
     src/simulation/ScenarioLoader.cpp
+    src/simulation/ScenarioRepository.cpp
 )
 
 target_include_directories(trdp_simulator
