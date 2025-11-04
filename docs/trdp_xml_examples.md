@@ -137,3 +137,27 @@ profiling CPU load, memory pressure, and throughput.
    bootstrap a device definition matching your scenario.
 3. Adapt the telegram, data set, and COM parameter entries to match your TRDP
    network topology and payload schema.
+4. Validate the XML before handing it to the simulator by running the
+   utilities shipped with the upstream stack (documented in
+   `external/tcnopen_trdp/trdp/test/xml/readme.txt`).
+
+## Validating and exercising configurations with upstream tools
+
+The TRDP test suite ships two helper binaries that are ideal for vetting a
+device-under-test profile before the simulator consumes it:
+
+- **`trdp-xmlprint-test <cfgFileName>`** parses the supplied XML, resolves
+  memory/dataset declarations, and prints the resulting TRDP structures. It is
+  useful for confirming schema compliance and verifying that all defaulted
+  values are expanded as expected.
+- **`trdp-xmlpd-test <cfgFileName>`** boots a minimal TRDP stack using the
+  provided configuration, publishes/subscribes all declared PD telegrams, and
+  streams the resulting payloads. This gives an end-to-end smoke test that the
+  dataset definitions, URIs, and supervision settings work against a live peer.
+
+Both tools are built from the `external/tcnopen_trdp` submodule. After checking
+out the submodule, build the test targets via CMake (for example `cmake --build
+build --target trdp-xmlpd-test trdp-xmlprint-test`) and invoke them with the XML
+file you plan to feed into the simulator. Integrating these checks into your
+upload pipeline—or exposing them through the simulator's CLI/UI—ensures that
+operators catch schema or connectivity issues before a scenario run.
