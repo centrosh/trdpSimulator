@@ -174,6 +174,16 @@ Supporting data structures:
 - `PdSubscription` encodes filtering, sampling rate, and supervision
   parameters.
 
+Current implementation status:
+- `ProcessDataMessage` and `MessageDataMessage` structs expose label,
+  COM ID, dataset ID, and payload buffers to the wrapper.
+- A loopback `StackAdapter` is provided so unit tests and the CLI can
+  exercise PD publish/receive and MD send/receive flows while the
+  TCNopen TRDP C API is integrated.
+- `MessageDataAck` surfaces acknowledgement status (delivered, timeout,
+  failed) to the simulation engine so scenarios can react to
+  send outcomes.
+
 Error handling strategy:
 - Wrap TRDP error codes in typed exceptions (e.g., `TrdpError`).
 - Expose retry policies and fallback hooks to the simulation engine.

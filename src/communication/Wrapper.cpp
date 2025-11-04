@@ -30,6 +30,32 @@ namespace {
     return oss.str();
 }
 
+[[nodiscard]] std::string formatPdMessage(const ProcessDataMessage &message) {
+    std::ostringstream oss;
+    oss << message.label << " (comId=" << message.comId << ", dataset=" << message.datasetId
+        << ", bytes=" << message.payload.size() << ')';
+    return oss.str();
+}
+
+[[nodiscard]] std::string formatMdMessage(const MessageDataMessage &message) {
+    std::ostringstream oss;
+    oss << message.label << " (comId=" << message.comId << ", dataset=" << message.datasetId
+        << ", bytes=" << message.payload.size() << ')';
+    return oss.str();
+}
+
+[[nodiscard]] std::string formatAck(const MessageDataAck &ack) {
+    switch (ack.status) {
+    case MessageDataStatus::Delivered:
+        return "delivered" + (ack.detail.empty() ? std::string{} : " - " + ack.detail);
+    case MessageDataStatus::Timeout:
+        return "timeout" + (ack.detail.empty() ? std::string{} : " - " + ack.detail);
+    case MessageDataStatus::Failed:
+        return "failed" + (ack.detail.empty() ? std::string{} : " - " + ack.detail);
+    }
+    return "unknown";
+}
+
 class DummyStackAdapter final : public StackAdapter {
 public:
     void openSession(const std::string &endpoint) override {
@@ -47,8 +73,26 @@ public:
         m_open = false;
     }
 
-    void publishProcessData(std::string_view /*label*/) override { ensureOpen("publishProcessData"); }
-    void sendMessageData(std::string_view /*label*/) override { ensureOpen("sendMessageData"); }
+    void registerProcessDataHandler(ProcessDataHandler handler) override { m_pdHandler = std::move(handler); }
+
+    void registerMessageDataHandler(MessageDataHandler handler) override { m_mdHandler = std::move(handler); }
+
+    void publishProcessData(const ProcessDataMessage &message) override {
+        ensureOpen("publishProcessData");
+        if (m_pdHandler) {
+            m_pdHandler(message);
+        }
+    }
+
+    MessageDataAck sendMessageData(const MessageDataMessage &message) override {
+        ensureOpen("sendMessageData");
+        if (m_mdHandler) {
+            m_mdHandler(message);
+        }
+        return MessageDataAck{MessageDataStatus::Delivered, "loopback"};
+    }
+
+    void poll() override { /* no-op loopback */ }
 
 private:
     void ensureOpen(std::string_view operation) const {
@@ -59,6 +103,8 @@ private:
 
     bool m_open{false};
     std::string m_endpoint;
+    ProcessDataHandler m_pdHandler;
+    MessageDataHandler m_mdHandler;
 };
 
 [[nodiscard]] std::shared_ptr<StackAdapter> makeDefaultAdapter() {
@@ -80,6 +126,9 @@ Wrapper::Wrapper(std::string endpoint, std::shared_ptr<StackAdapter> adapter)
     if (!m_adapter) {
         throw std::invalid_argument("Stack adapter cannot be null");
     }
+
+    m_adapter->registerProcessDataHandler([this](const ProcessDataMessage &message) { handleProcessData(message); });
+    m_adapter->registerMessageDataHandler([this](const MessageDataMessage &message) { handleMessageData(message); });
 }
 
 void Wrapper::open() {
@@ -122,12 +171,16 @@ void Wrapper::close() {
     recordInfo("close");
 }
 
-void Wrapper::publishProcessData(std::string_view label) {
+void Wrapper::registerProcessDataHandler(ProcessDataCallback callback) { m_processDataCallback = std::move(callback); }
+
+void Wrapper::registerMessageDataHandler(MessageDataCallback callback) { m_messageDataCallback = std::move(callback); }
+
+void Wrapper::publishProcessData(const ProcessDataMessage &message) {
     if (!m_open) {
         throw std::runtime_error("Cannot publish PD telegram: connection closed");
     }
     try {
-        m_adapter->publishProcessData(label);
+        m_adapter->publishProcessData(message);
     } catch (const TrdpError &error) {
         std::ostringstream oss;
         oss << "pd failure (code " << error.errorCode() << ")";
@@ -138,15 +191,16 @@ void Wrapper::publishProcessData(std::string_view label) {
         recordError(oss.str());
         throw;
     }
-    recordInfo("pd -> " + std::string{label});
+    recordInfo("pd -> " + formatPdMessage(message));
 }
 
-void Wrapper::sendMessageData(std::string_view label) {
+MessageDataAck Wrapper::sendMessageData(const MessageDataMessage &message) {
     if (!m_open) {
         throw std::runtime_error("Cannot send MD telegram: connection closed");
     }
+    MessageDataAck ack;
     try {
-        m_adapter->sendMessageData(label);
+        ack = m_adapter->sendMessageData(message);
     } catch (const TrdpError &error) {
         std::ostringstream oss;
         oss << "md failure (code " << error.errorCode() << ")";
@@ -157,7 +211,25 @@ void Wrapper::sendMessageData(std::string_view label) {
         recordError(oss.str());
         throw;
     }
-    recordInfo("md -> " + std::string{label});
+    std::ostringstream oss;
+    oss << "md -> " << formatMdMessage(message) << " | " << formatAck(ack);
+    recordInfo(oss.str());
+    return ack;
+}
+
+void Wrapper::poll() {
+    try {
+        m_adapter->poll();
+    } catch (const TrdpError &error) {
+        std::ostringstream oss;
+        oss << "poll failure (code " << error.errorCode() << ")";
+        if (!error.context().empty()) {
+            oss << " context=" << error.context();
+        }
+        oss << ": " << error.what();
+        recordError(oss.str());
+        throw;
+    }
 }
 
 bool Wrapper::isOpen() const noexcept { return m_open; }
@@ -176,6 +248,20 @@ void Wrapper::recordError(std::string message) {
     const auto timestamp = makeTimestamp();
     m_diagnostics.push_back(DiagnosticEvent{timestamp, DiagnosticEvent::Level::Error, message});
     appendTelemetry(m_telemetry, timestamp, message, true);
+}
+
+void Wrapper::handleProcessData(const ProcessDataMessage &message) {
+    recordInfo("pd <- " + formatPdMessage(message));
+    if (m_processDataCallback) {
+        m_processDataCallback(message);
+    }
+}
+
+void Wrapper::handleMessageData(const MessageDataMessage &message) {
+    recordInfo("md <- " + formatMdMessage(message));
+    if (m_messageDataCallback) {
+        m_messageDataCallback(message);
+    }
 }
 
 } // namespace trdp::communication

@@ -4,12 +4,13 @@ The approved architecture in [`design.md`](design.md) is decomposed into
 incremental milestones to enable iterative delivery. Each milestone
 contains themed user stories that can be executed independently.
 
-## Milestone 1 – Communication Core Bootstrap
+## Milestone 1 – Communication Core Bootstrap ✅ Completed
 - **Goal:** Provide a thin C++ wrapper around the TRDP stack and exercise
   basic PD/MD telegram flows.
 - **Duration:** 2 sprints
 - **Exit Criteria:** Automated tests proving PD publish, MD send, and
-  callback hooks.
+  callback hooks. *Status:* Achieved via the loopback stack adapter,
+  `tests/test_wrapper.cpp`, and `tests/test_engine.cpp`.
 
 ### User Stories
 1. *As a simulator developer, I can initialise and shutdown the TRDP

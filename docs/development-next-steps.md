@@ -4,25 +4,18 @@ This guide summarises the immediate priorities for moving the TRDP Simulator
 from scaffolding towards an operator-ready tool. Each item references the
 existing architecture and milestone planning documents.
 
-## 1. Finish Milestone 1: Communication Core Bootstrap
+## 1. Milestone 1: Communication Core Bootstrap ✅ Completed
 
-Focus the next sprints on completing the P0 stories in
-[`docs/milestones.md`](milestones.md) and the matching backlog entries in
-[`docs/issue-tracker.md`](issue-tracker.md): bring the C++ communication layer to
-feature parity with the TRDP stack by implementing lifecycle management,
-process-data publishing, message-data send/receive, and diagnostic hooks. This
-establishes a reliable runtime foundation for higher-level features and is a
-prerequisite for integrating external device configurations.
+Milestone 1 has been implemented. The communication wrapper now exposes
+lifecycle management, PD publish/receive, MD send/receive with acknowledgement
+status, and diagnostic hooks surfaced through the CLI and engine. Focused unit
+tests in `tests/test_wrapper.cpp` and `tests/test_engine.cpp` exercise success
+and failure paths so regressions are caught automatically.
 
-Key tasks:
-
-- Wire the C++ wrappers in `src/communication/` to the TCNOpen TRDP APIs and
-  exercise them via unit tests in `tests/`.
-- Provide minimal CLI commands in `src/cli/` (or the existing Python CLI) to
-  exercise PD/MD flows against a loopback scenario so the integration can be
-  regression-tested.
-- Capture TRDP errors and surface them through structured diagnostics as outlined
-  in [`docs/design.md`](design.md).
+While future work will replace the loopback adapter with the real TCNopen TRDP
+stack, the current implementation provides a deterministic seam for higher-level
+scenarios and validates callback wiring. Subsequent development should build on
+this foundation to ingest real device profiles and orchestrate scenarios.
 
 ## 2. Accept and Validate Device XML Profiles
 

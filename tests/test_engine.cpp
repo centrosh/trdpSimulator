@@ -1,3 +1,4 @@
+#include "trdp_simulator/communication/Types.hpp"
 #include "trdp_simulator/communication/Wrapper.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
 
@@ -7,7 +8,6 @@
 #include <vector>
 
 using trdp::communication::DiagnosticEvent;
-
 using trdp::communication::Wrapper;
 using trdp::simulation::ScenarioEvent;
 using trdp::simulation::SimulationEngine;
@@ -17,17 +17,17 @@ int main() {
     SimulationEngine engine{wrapper};
 
     std::vector<ScenarioEvent> events{
-        {ScenarioEvent::Type::ProcessData, "train-ready"},
-        {ScenarioEvent::Type::MessageData, "dispatch"},
-        {ScenarioEvent::Type::ProcessData, "doors-close"},
+        {ScenarioEvent::Type::ProcessData, "train-ready", 1001, 1001, {0x01, 0x02}},
+        {ScenarioEvent::Type::MessageData, "dispatch", 2001, 2001, {0x03}},
+        {ScenarioEvent::Type::ProcessData, "doors-close", 1002, 1002, {0x04}},
     };
 
     engine.loadScenario("integration-smoke", events);
     engine.run();
 
     const auto &telemetry = wrapper.telemetry();
-    // Expect open + 3 events + close
-    assert(telemetry.size() == 5);
+    // Expect open + (pd->,pd<-) + (md->,md<-) + (pd->,pd<-) + close = 8
+    assert(telemetry.size() == 8);
 
     // Last entry should be the close event
     const std::string &lastEntry = telemetry.back();
@@ -40,6 +40,16 @@ int main() {
     for (const auto &event : diagnostics) {
         assert(event.level == DiagnosticEvent::Level::Info);
     }
+
+    // Ensure MD send recorded delivered status
+    bool foundMdAck = false;
+    for (const auto &entry : telemetry) {
+        if (entry.find("md -> dispatch") != std::string::npos) {
+            assert(entry.find("delivered") != std::string::npos);
+            foundMdAck = true;
+        }
+    }
+    assert(foundMdAck);
 
     return 0;
 }

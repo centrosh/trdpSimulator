@@ -1,15 +1,20 @@
+#include "trdp_simulator/communication/Types.hpp"
+#include "trdp_simulator/communication/TrdpError.hpp"
 #include "trdp_simulator/communication/Wrapper.hpp"
 #include "trdp_simulator/communication/TrdpError.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
 
 #include <exception>
 #include <iostream>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 using trdp::communication::DiagnosticEvent;
+using trdp::communication::MessageDataMessage;
+using trdp::communication::ProcessDataMessage;
 using trdp::communication::TrdpError;
 using trdp::communication::Wrapper;
 using trdp::simulation::ScenarioEvent;
@@ -32,9 +37,51 @@ struct CliOptions {
     throw std::invalid_argument("Unknown event type: " + std::string{token});
 }
 
+[[nodiscard]] std::vector<std::string> splitTokens(std::string_view input) {
+    std::vector<std::string> tokens;
+    std::size_t start = 0;
+    while (start <= input.size()) {
+        const auto pos = input.find(':', start);
+        if (pos == std::string_view::npos) {
+            tokens.emplace_back(input.substr(start));
+            break;
+        }
+        tokens.emplace_back(input.substr(start, pos - start));
+        start = pos + 1;
+        if (start == input.size()) {
+            tokens.emplace_back("");
+            break;
+        }
+    }
+    return tokens;
+}
+
+[[nodiscard]] std::vector<std::uint8_t> parsePayloadToken(std::string_view token) {
+    std::vector<std::uint8_t> payload;
+    if (token.empty()) {
+        return payload;
+    }
+    if (token.size() > 2 && (token.rfind("0x", 0) == 0 || token.rfind("0X", 0) == 0)) {
+        if ((token.size() - 2) % 2 != 0) {
+            throw std::invalid_argument("Hex payload must contain an even number of characters");
+        }
+        for (std::size_t i = 2; i < token.size(); i += 2) {
+            const auto byteStr = token.substr(i, 2);
+            const unsigned value = std::stoul(std::string{byteStr}, nullptr, 16);
+            if (value > 0xFF) {
+                throw std::invalid_argument("Hex payload byte out of range: " + std::string{byteStr});
+            }
+            payload.push_back(static_cast<std::uint8_t>(value));
+        }
+        return payload;
+    }
+    payload.assign(token.begin(), token.end());
+    return payload;
+}
+
 CliOptions parseArgs(int argc, char **argv) {
     if (argc < 2) {
-        throw std::invalid_argument("Usage: trdp-sim <scenario-name> [--endpoint <ip>] [--event <pd|md>:label]...");
+        throw std::invalid_argument("Usage: trdp-sim <scenario-name> [--endpoint <ip>] [--event <pd|md>:label[:comId][:dataset][:payload]]...");
     }
 
     CliOptions options;
@@ -52,14 +99,23 @@ CliOptions parseArgs(int argc, char **argv) {
                 throw std::invalid_argument("--event requires a value");
             }
             const std::string spec{argv[++i]};
-            const auto delim = spec.find(':');
-            if (delim == std::string::npos || delim == spec.size() - 1) {
-                throw std::invalid_argument("Event specification must be <pd|md>:label");
+            const auto tokens = splitTokens(spec);
+            if (tokens.size() < 2) {
+                throw std::invalid_argument("Event specification must be <pd|md>:label[:comId][:dataset][:payload]");
             }
-            const auto typeToken = spec.substr(0, delim);
-            const auto label = spec.substr(delim + 1);
-            ScenarioEvent event{parseEventType(typeToken), label};
-            options.events.push_back(event);
+            ScenarioEvent event{};
+            event.type = parseEventType(tokens[0]);
+            event.label = tokens[1];
+            if (tokens.size() >= 3 && !tokens[2].empty()) {
+                event.comId = static_cast<std::uint32_t>(std::stoul(tokens[2]));
+            }
+            if (tokens.size() >= 4 && !tokens[3].empty()) {
+                event.datasetId = static_cast<std::uint32_t>(std::stoul(tokens[3]));
+            }
+            if (tokens.size() >= 5 && !tokens[4].empty()) {
+                event.payload = parsePayloadToken(tokens[4]);
+            }
+            options.events.push_back(std::move(event));
         } else {
             throw std::invalid_argument("Unknown argument: " + arg);
         }
@@ -67,8 +123,9 @@ CliOptions parseArgs(int argc, char **argv) {
 
     if (options.events.empty()) {
         options.events = {
-            {ScenarioEvent::Type::ProcessData, "door-control"},
-            {ScenarioEvent::Type::MessageData, "brake-release"},
+            {ScenarioEvent::Type::ProcessData, "door-control", 1001, 1001, {0x01, 0x02}},
+            {ScenarioEvent::Type::MessageData, "brake-release", 2001, 2001, {0x7B}},
+            {ScenarioEvent::Type::ProcessData, "doors-closed", 1002, 1002, {0x05}},
         };
     }
 
@@ -83,6 +140,15 @@ void printDiagnostics(const std::vector<DiagnosticEvent> &diagnostics) {
     }
 }
 
+void registerLoopbackLogging(Wrapper &wrapper) {
+    wrapper.registerProcessDataHandler([](const ProcessDataMessage &message) {
+        std::cout << "PD received: " << message.label << " (bytes=" << message.payload.size() << ")" << std::endl;
+    });
+    wrapper.registerMessageDataHandler([](const MessageDataMessage &message) {
+        std::cout << "MD received: " << message.label << " (bytes=" << message.payload.size() << ")" << std::endl;
+    });
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -95,6 +161,7 @@ int main(int argc, char **argv) {
     }
 
     Wrapper wrapper{options.endpoint};
+    registerLoopbackLogging(wrapper);
     SimulationEngine engine{wrapper};
 
     try {
