@@ -3,6 +3,7 @@
 #include "trdp_simulator/communication/Wrapper.hpp"
 #include "trdp_simulator/simulation/Scenario.hpp"
 
+#include <cstdint>
 #include <string>
 
 namespace trdp::simulation {
