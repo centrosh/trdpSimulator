@@ -62,6 +62,8 @@ simulator runtime, continuous integration, and contributor workflows.
   linking them into the simulator.
 - [`docs/development-next-steps.md`](docs/development-next-steps.md) – near-term
   roadmap focusing on device XML ingestion, validation, and operator tooling.
+- [`docs/milestone-2-plan.md`](docs/milestone-2-plan.md) – detailed plan for the
+  upcoming scenario orchestration and device profile ingestion milestone.
 
 ## Distribution
 

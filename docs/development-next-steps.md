@@ -20,7 +20,9 @@ this foundation to ingest real device profiles and orchestrate scenarios.
 ## 2. Accept and Validate Device XML Profiles
 
 With the communication core in place, enable operators to supply device-under-
-test profiles:
+test profiles. A dedicated implementation plan is tracked in
+[`docs/milestone-2-plan.md`](milestone-2-plan.md); the highlights are summarised
+here for quick reference:
 
 1. **Ingestion path:** Extend the scenario loader (see
    [`docs/design.md`](design.md#14-ui--cli-layer)) to accept raw TRDP XML files.
@@ -32,11 +34,13 @@ test profiles:
    XML before it reaches the runtime and return actionable error reports.
 3. **Configuration catalogue:** Persist approved XML files under a managed
    directory (for example `~/.trdp-simulator/devices/`) and reference them by ID
-   in scenarios.
+   in scenarios. Track metadata (checksum, timestamp, validation result) so QA
+   and operators can audit changes.
 
 Deliverables include automated tests that feed known-good and intentionally
 broken XML samples through the validation pipeline and check for the expected
-responses.
+responses, alongside documentation updates that walk operators through the new
+workflow.
 
 ## 3. Build Editing Surfaces for Device Configuration
 

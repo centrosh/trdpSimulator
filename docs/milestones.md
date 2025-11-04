@@ -26,10 +26,12 @@ contains themed user stories that can be executed independently.
 
 ## Milestone 2 – Scenario Orchestration Engine
 - **Goal:** Build the deterministic scheduler that executes scenarios and
-  coordinates with the communication layer.
+  coordinates with the communication layer. This milestone also introduces the
+  device XML ingestion and validation workflow captured in
+  [`docs/milestone-2-plan.md`](milestone-2-plan.md).
 - **Duration:** 3 sprints
-- **Exit Criteria:** Scenario runner supporting configurable timetables
-  and verifying expected telegrams via automated tests.
+- **Exit Criteria:** Scenario runner supporting configurable timetables,
+  validated device profiles, and verifying expected telegrams via automated tests.
 
 ### User Stories
 1. *As a simulation engineer, I can load scenario definitions from YAML
