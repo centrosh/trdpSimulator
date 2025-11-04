@@ -1,0 +1,13 @@
+scenario: loopback-demo
+device: device1
+events:
+  - type: pd
+    label: door-command
+    com_id: 1001
+    dataset_id: 1001
+    payload: 0x0102
+  - type: md
+    label: brake-release
+    com_id: 2001
+    dataset_id: 2001
+    payload: 0x7B

@@ -183,6 +183,15 @@ Current implementation status:
 - `MessageDataAck` surfaces acknowledgement status (delivered, timeout,
   failed) to the simulation engine so scenarios can react to
   send outcomes.
+- `DeviceProfileRepository` persists XML definitions under
+  `~/.trdp-simulator/devices`, calculates deterministic checksums, and
+  records validation timestamps for auditability.
+- `XmlValidator` wraps `libxml2` schema validation using the bundled
+  `resources/trdp/trdp-config.xsd` so malformed profiles are rejected
+  before execution.
+- `ScenarioLoader` parses a constrained YAML format, verifies referenced
+  device IDs against the repository, and exposes ordered PD/MD events to
+  the engine.
 
 Error handling strategy:
 - Wrap TRDP error codes in typed exceptions (e.g., `TrdpError`).
@@ -214,6 +223,13 @@ public:
     void shutdown();
 };
 ```
+
+The current engine implementation accepts a fully hydrated `Scenario`, asserts
+that a device profile is associated, and executes PD/MD events sequentially.
+Optional millisecond delays are honoured between events, and loopback
+acknowledgements are treated as fatal when they surface failures. Scenario
+documents are persisted under `~/.trdp-simulator/scenarios` whenever operators
+provide them via the CLI, enabling repeatable runs without re-uploading files.
 
 ### 4.3 UI/CLI Interfaces
 ```cpp

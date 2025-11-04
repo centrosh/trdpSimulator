@@ -2,8 +2,9 @@
 
 #include "trdp_simulator/communication/Types.hpp"
 
+#include <chrono>
 #include <stdexcept>
-#include <utility>
+#include <thread>
 
 namespace trdp::simulation {
 
@@ -15,12 +16,14 @@ using communication::ProcessDataMessage;
 SimulationEngine::SimulationEngine(communication::Wrapper &wrapper)
     : m_wrapper(wrapper) {}
 
-void SimulationEngine::loadScenario(std::string name, std::vector<ScenarioEvent> events) {
-    if (events.empty()) {
+void SimulationEngine::loadScenario(Scenario scenario) {
+    if (scenario.events.empty()) {
         throw std::invalid_argument("Scenario must contain at least one event");
     }
-    m_scenarioName = std::move(name);
-    m_events = std::move(events);
+    if (scenario.deviceProfileId.empty()) {
+        throw std::invalid_argument("Scenario requires a device profile");
+    }
+    m_scenario = std::move(scenario);
     m_loaded = true;
 }
 
@@ -33,7 +36,10 @@ void SimulationEngine::run() {
     }
 
     try {
-        for (const auto &event : m_events) {
+        for (const auto &event : m_scenario.events) {
+            if (event.delay.count() > 0) {
+                std::this_thread::sleep_for(event.delay);
+            }
             switch (event.type) {
             case ScenarioEvent::Type::ProcessData: {
                 ProcessDataMessage message{event.label, event.comId, event.datasetId, event.payload};
@@ -57,7 +63,6 @@ void SimulationEngine::run() {
             try {
                 m_wrapper.close();
             } catch (...) {
-                // Swallow close failure while propagating original exception.
             }
         }
         m_loaded = false;
@@ -66,8 +71,9 @@ void SimulationEngine::run() {
     m_loaded = false;
 }
 
-const std::string &SimulationEngine::scenarioName() const noexcept { return m_scenarioName; }
-
-const std::vector<ScenarioEvent> &SimulationEngine::events() const noexcept { return m_events; }
+const Scenario &SimulationEngine::scenario() const noexcept {
+    return m_scenario;
+}
 
 } // namespace trdp::simulation
+

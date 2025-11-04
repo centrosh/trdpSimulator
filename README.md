@@ -36,13 +36,22 @@ simulator runtime, continuous integration, and contributor workflows.
    ```bash
    make test
    ```
-4. Execute the demo CLI and provide a scenario name. You can optionally pass
-   a TRDP endpoint and PD/MD events to exercise the wrapper without a network
-   connection. Event arguments accept optional COM ID, dataset ID, and payload
-   values (ASCII or `0x`-prefixed hex):
+4. Register a device XML and run the bundled loopback scenario. The simulator
+   copies the XML into `~/.trdp-simulator/devices`, validates it against the
+   bundled schema, and persists the scenario definition for future runs:
    ```bash
-   ./build/trdp_sim_cli demo-scenario \
-       --endpoint 127.0.0.1 \
+   ./build/trdp_sim_cli loopback-demo \
+       --device-xml resources/trdp/device1.xml \
+       --scenario-file resources/trdp/loopback.yaml
+   ```
+   Subsequent invocations can load the persisted scenario directly:
+   ```bash
+   ./build/trdp_sim_cli loopback-demo
+   ```
+   To craft ad-hoc sequences without a YAML file, supply explicit events and an
+   existing device profile identifier:
+   ```bash
+   ./build/trdp_sim_cli adhoc --device device1 \
        --event pd:doors-close:1001:1001:0x0102 \
        --event md:departure:2001:2001:0x7B
    ```

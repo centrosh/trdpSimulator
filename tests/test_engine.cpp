@@ -3,12 +3,14 @@
 #include "trdp_simulator/simulation/Engine.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <string>
 #include <vector>
 
 using trdp::communication::DiagnosticEvent;
 using trdp::communication::Wrapper;
+using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioEvent;
 using trdp::simulation::SimulationEngine;
 
@@ -16,13 +18,16 @@ int main() {
     Wrapper wrapper{"integration-endpoint"};
     SimulationEngine engine{wrapper};
 
-    std::vector<ScenarioEvent> events{
-        {ScenarioEvent::Type::ProcessData, "train-ready", 1001, 1001, {0x01, 0x02}},
-        {ScenarioEvent::Type::MessageData, "dispatch", 2001, 2001, {0x03}},
-        {ScenarioEvent::Type::ProcessData, "doors-close", 1002, 1002, {0x04}},
+    Scenario scenario{};
+    scenario.id = "integration-smoke";
+    scenario.deviceProfileId = "loopback";
+    scenario.events = {
+        {ScenarioEvent::Type::ProcessData, "train-ready", 1001, 1001, {0x01, 0x02}, std::chrono::milliseconds{0}},
+        {ScenarioEvent::Type::MessageData, "dispatch", 2001, 2001, {0x03}, std::chrono::milliseconds{0}},
+        {ScenarioEvent::Type::ProcessData, "doors-close", 1002, 1002, {0x04}, std::chrono::milliseconds{0}},
     };
 
-    engine.loadScenario("integration-smoke", events);
+    engine.loadScenario(std::move(scenario));
     engine.run();
 
     const auto &telemetry = wrapper.telemetry();

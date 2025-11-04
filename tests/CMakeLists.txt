@@ -7,3 +7,13 @@ add_executable(trdp_sim_wrapper_tests test_wrapper.cpp)
 target_link_libraries(trdp_sim_wrapper_tests PRIVATE trdp_simulator)
 target_compile_features(trdp_sim_wrapper_tests PRIVATE cxx_std_20)
 add_test(NAME wrapper COMMAND trdp_sim_wrapper_tests)
+
+add_executable(trdp_sim_device_repo_tests test_device_repository.cpp)
+target_link_libraries(trdp_sim_device_repo_tests PRIVATE trdp_simulator)
+target_compile_features(trdp_sim_device_repo_tests PRIVATE cxx_std_20)
+add_test(NAME device_repository COMMAND trdp_sim_device_repo_tests)
+
+add_executable(trdp_sim_scenario_loader_tests test_scenario_loader.cpp)
+target_link_libraries(trdp_sim_scenario_loader_tests PRIVATE trdp_simulator)
+target_compile_features(trdp_sim_scenario_loader_tests PRIVATE cxx_std_20)
+add_test(NAME scenario_loader COMMAND trdp_sim_scenario_loader_tests)
