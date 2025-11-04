@@ -23,6 +23,28 @@ The `scripts/` directory contains automation for creating and pushing artefacts:
 - `scripts/publish_python_package.sh [repository-url]` uploads the Python artefacts to PyPI or an
   alternative repository.
 
+## Device Profile & Scenario Management
+
+Operators configure test runs through TRDP XML device definitions and YAML
+scenario files. The CLI fronts the management workflow:
+
+1. **Register a device profile** – `./trdp_sim_cli <scenario> --device-xml <path>`
+   copies the XML into `~/.trdp-simulator/devices/<id>.xml`, validates it with
+   the bundled schema, and records the checksum and timestamp in
+   `manifest.db`. Re-uploading a file with the same checksum reuses the
+   original identifier.
+2. **List catalogued profiles** – inspect `manifest.db` or integrate against
+   `DeviceProfileRepository::list()` for automation.
+3. **Persist scenarios** – providing `--scenario-file <path>` loads the YAML
+   definition, verifies that the referenced `device` exists, and stores a copy
+   under `~/.trdp-simulator/scenarios/<scenario>.yaml` for future reuse.
+4. **Inline execution** – if YAML is unavailable, pass `--device <id>` along
+   with `--event` arguments to exercise the loopback stack directly. Inline
+   events require a previously registered device profile.
+
+Validation failures surface as CLI errors and are also recorded in the wrapper
+diagnostics so that automation can detect and report misconfiguration.
+
 ### Deployment checklist
 
 1. Run the build and test pipeline (`make test`).

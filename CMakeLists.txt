@@ -7,9 +7,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_TESTING "Build unit tests" ON)
 
+find_package(LibXml2 REQUIRED)
+
 add_library(trdp_simulator
     src/communication/Wrapper.cpp
+    src/device/DeviceProfileRepository.cpp
+    src/device/XmlValidator.cpp
     src/simulation/Engine.cpp
+    src/simulation/ScenarioLoader.cpp
 )
 
 target_include_directories(trdp_simulator
@@ -19,6 +24,7 @@ target_include_directories(trdp_simulator
 )
 
 target_compile_features(trdp_simulator PUBLIC cxx_std_20)
+target_link_libraries(trdp_simulator PUBLIC LibXml2::LibXml2)
 
 add_executable(trdp_sim_cli src/main.cpp)
 target_link_libraries(trdp_sim_cli PRIVATE trdp_simulator)

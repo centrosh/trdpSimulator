@@ -4,6 +4,15 @@ The TRDP Simulator targets railway communication scenarios using the
 TCNopen TRDP stack. This repository now includes C++ scaffolding for the
 simulator runtime, continuous integration, and contributor workflows.
 
+## Current Capabilities
+
+- C++ communication wrapper with lifecycle management, PD publish/receive,
+  MD send/receive, and structured diagnostics recorded for each action.
+- Loopback stack adapter that mimics the TRDP API so the CLI and unit tests
+  can exercise callback flows without network access.
+- Scenario engine driving ordered PD/MD events and validating message-data
+  acknowledgements before advancing.
+
 ## Project Structure
 
 ```
@@ -27,9 +36,24 @@ simulator runtime, continuous integration, and contributor workflows.
    ```bash
    make test
    ```
-4. Execute the demo CLI (placeholder implementation):
+4. Register a device XML and run the bundled loopback scenario. The simulator
+   copies the XML into `~/.trdp-simulator/devices`, validates it against the
+   bundled schema, and persists the scenario definition for future runs:
    ```bash
-   ./build/trdp_sim_cli demo-scenario
+   ./build/trdp_sim_cli loopback-demo \
+       --device-xml resources/trdp/device1.xml \
+       --scenario-file resources/trdp/loopback.yaml
+   ```
+   Subsequent invocations can load the persisted scenario directly:
+   ```bash
+   ./build/trdp_sim_cli loopback-demo
+   ```
+   To craft ad-hoc sequences without a YAML file, supply explicit events and an
+   existing device profile identifier:
+   ```bash
+   ./build/trdp_sim_cli adhoc --device device1 \
+       --event pd:doors-close:1001:1001:0x0102 \
+       --event md:departure:2001:2001:0x7B
    ```
 
 ## Documentation
@@ -45,6 +69,10 @@ simulator runtime, continuous integration, and contributor workflows.
 - [`docs/TCNOpen_TRDP.md`](docs/TCNOpen_TRDP.md) – guidance for adding the
   TCNOpen TRDP stack as a git submodule, building its static libraries, and
   linking them into the simulator.
+- [`docs/development-next-steps.md`](docs/development-next-steps.md) – near-term
+  roadmap focusing on device XML ingestion, validation, and operator tooling.
+- [`docs/milestone-2-plan.md`](docs/milestone-2-plan.md) – detailed plan for the
+  upcoming scenario orchestration and device profile ingestion milestone.
 
 ## Distribution
 
