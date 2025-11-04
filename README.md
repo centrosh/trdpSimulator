@@ -45,6 +45,8 @@ simulator runtime, continuous integration, and contributor workflows.
 - [`docs/TCNOpen_TRDP.md`](docs/TCNOpen_TRDP.md) – guidance for adding the
   TCNOpen TRDP stack as a git submodule, building its static libraries, and
   linking them into the simulator.
+- [`docs/development-next-steps.md`](docs/development-next-steps.md) – near-term
+  roadmap focusing on device XML ingestion, validation, and operator tooling.
 
 ## Distribution
 
