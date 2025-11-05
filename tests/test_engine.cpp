@@ -1,22 +1,62 @@
 #include "trdp_simulator/communication/Types.hpp"
 #include "trdp_simulator/communication/Wrapper.hpp"
+#include "trdp_simulator/device/DeviceProfileRepository.hpp"
+#include "trdp_simulator/device/XmlValidator.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
+#include "trdp_simulator/simulation/ScenarioRepository.hpp"
+#include "trdp_simulator/simulation/ScenarioSchemaValidator.hpp"
 
 #include <cassert>
 #include <chrono>
 #include <cstddef>
+#include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 using trdp::communication::DiagnosticEvent;
 using trdp::communication::Wrapper;
+using trdp::device::DeviceProfileRepository;
+using trdp::device::XmlValidator;
+using trdp::simulation::ScenarioRepository;
+using trdp::simulation::ScenarioSchemaValidator;
 using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioEvent;
 using trdp::simulation::SimulationEngine;
 
+namespace {
+
+std::filesystem::path deviceSchemaPath() {
+    const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
+    return repoRoot / "resources/trdp/trdp-config.xsd";
+}
+
+std::filesystem::path scenarioSchemaPath() {
+    const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
+    return repoRoot / "resources/scenarios/scenario.schema.yaml";
+}
+
+std::filesystem::path tempDir(const std::string &name) {
+    auto dir = std::filesystem::temp_directory_path() / std::filesystem::path{name + std::to_string(std::rand())};
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+} // namespace
+
 int main() {
     Wrapper wrapper{"integration-endpoint"};
-    SimulationEngine engine{wrapper};
+
+    XmlValidator xmlValidator{deviceSchemaPath()};
+    const auto deviceRoot = tempDir("engine-dev-");
+    DeviceProfileRepository deviceRepository{deviceRoot, xmlValidator};
+    ScenarioSchemaValidator scenarioValidator{scenarioSchemaPath()};
+
+    const auto scenarioRoot = tempDir("engine-scenarios-");
+    ScenarioRepository repository{scenarioRoot, deviceRepository, scenarioValidator};
+
+    const auto runRoot = tempDir("engine-runs-");
+    SimulationEngine engine{wrapper, runRoot, &repository};
 
     Scenario scenario{};
     scenario.id = "integration-smoke";
@@ -55,6 +95,14 @@ int main() {
         }
     }
     assert(foundMdAck);
+
+    const auto runs = repository.listRunsForScenario("integration-smoke");
+    assert(runs.size() == 1);
+    const auto &run = runs.front();
+    assert(run.success);
+    assert(std::filesystem::exists(run.artefactPath / "telemetry.log"));
+    assert(std::filesystem::exists(run.artefactPath / "diagnostics.log"));
+    assert(std::filesystem::exists(run.artefactPath / "metadata.yaml"));
 
     return 0;
 }

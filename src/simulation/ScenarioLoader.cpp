@@ -6,8 +6,9 @@
 
 namespace trdp::simulation {
 
-ScenarioLoader::ScenarioLoader(device::DeviceProfileRepository &repository, std::filesystem::path scenarioRoot)
-    : m_repository(repository), m_scenarioRoot(std::move(scenarioRoot)) {
+ScenarioLoader::ScenarioLoader(device::DeviceProfileRepository &repository, ScenarioSchemaValidator &validator,
+                               std::filesystem::path scenarioRoot)
+    : m_repository(repository), m_validator(validator), m_scenarioRoot(std::move(scenarioRoot)) {
     if (!m_scenarioRoot.empty()) {
         std::filesystem::create_directories(m_scenarioRoot);
     }
@@ -21,6 +22,7 @@ Scenario ScenarioLoader::load(const std::string &scenarioId) const {
     if (!std::filesystem::exists(path)) {
         throw std::runtime_error("Scenario file not found: " + path.string());
     }
+    m_validator.validate(path);
     return ScenarioParser::parse(path, m_repository);
 }
 
@@ -28,6 +30,7 @@ Scenario ScenarioLoader::loadFromFile(const std::filesystem::path &path) const {
     if (!std::filesystem::exists(path)) {
         throw std::runtime_error("Scenario file not found: " + path.string());
     }
+    m_validator.validate(path);
     return ScenarioParser::parse(path, m_repository);
 }
 

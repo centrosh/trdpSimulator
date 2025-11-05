@@ -1,6 +1,7 @@
 #include "trdp_simulator/device/DeviceProfileRepository.hpp"
 #include "trdp_simulator/device/XmlValidator.hpp"
 #include "trdp_simulator/simulation/ScenarioRepository.hpp"
+#include "trdp_simulator/simulation/ScenarioSchemaValidator.hpp"
 
 #include <cassert>
 #include <cstdlib>
@@ -11,12 +12,19 @@ using trdp::device::DeviceProfileRepository;
 using trdp::device::XmlValidator;
 using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioRepository;
+using trdp::simulation::ScenarioSchemaValidator;
+using trdp::simulation::RunRecord;
 
 namespace {
 
 std::filesystem::path schemaPath() {
     const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
     return repoRoot / "resources/trdp/trdp-config.xsd";
+}
+
+std::filesystem::path scenarioSchemaPath() {
+    const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
+    return repoRoot / "resources/scenarios/scenario.schema.yaml";
 }
 
 std::filesystem::path tempDir(const std::string &name) {
@@ -48,7 +56,8 @@ int main() {
     const auto deviceId = deviceRepository.registerProfile(schemaPath().parent_path() / "device1.xml");
 
     const auto scenarioRoot = tempDir("scenario-store-");
-    ScenarioRepository repository{scenarioRoot, deviceRepository};
+    ScenarioSchemaValidator scenarioValidator{scenarioSchemaPath()};
+    ScenarioRepository repository{scenarioRoot, deviceRepository, scenarioValidator};
 
     const auto tempScenario = tempDir("scenario-src-") / "door.yaml";
     writeScenario(tempScenario, deviceId, "0x0102");
@@ -83,6 +92,19 @@ int main() {
         threw = true;
     }
     assert(threw);
+
+    RunRecord runRecord{};
+    runRecord.id = "door-run";
+    runRecord.scenarioId = storedId;
+    runRecord.artefactPath = tempDir("scenario-run-");
+    runRecord.startedAt = "2024-01-01T00:00:00Z";
+    runRecord.completedAt = "2024-01-01T00:01:00Z";
+    runRecord.success = true;
+    repository.recordRun(runRecord);
+
+    const auto runs = repository.listRunsForScenario(storedId);
+    assert(!runs.empty());
+    assert(runs.front().id == runRecord.id);
 
     return 0;
 }
