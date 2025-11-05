@@ -15,6 +15,8 @@ simulator runtime, continuous integration, and contributor workflows.
 - Device profile catalogue and scenario repository backed by deterministic
   manifests, schema validation, and CLI tooling for importing, listing, and
   exporting simulation assets.
+- Scenario exports bundle their referenced device profiles so archived runs can
+  be replayed in new environments without manually copying XML assets.
 
 ## Project Structure
 
@@ -67,10 +69,16 @@ simulator runtime, continuous integration, and contributor workflows.
    # Import scenarios without executing them
    ./build/trdp_sim_cli --import-scenario resources/trdp/loopback.yaml --no-run
 
+   # Lint scenario definitions against the YAML schema
+   ./build/trdp_sim_cli --validate-scenario resources/trdp/loopback.yaml --no-run
+
    # Inspect registered scenarios and export a copy
    ./build/trdp_sim_cli --list-scenarios --no-run
    ./build/trdp_sim_cli --export-scenario loopback-demo /tmp/loopback.yaml --no-run
    ```
+   Exported bundles place the scenario YAML alongside a `devices/` directory
+   containing the referenced XML profiles so the catalogue can be rehydrated on
+   another host.
 
 ## Documentation
 

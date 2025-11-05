@@ -17,6 +17,8 @@ add_library(trdp_simulator
     src/simulation/ScenarioParser.cpp
     src/simulation/ScenarioLoader.cpp
     src/simulation/ScenarioRepository.cpp
+    src/simulation/ScenarioSchemaValidator.cpp
+    src/simulation/ScenarioYaml.cpp
 )
 
 target_include_directories(trdp_simulator

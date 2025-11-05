@@ -38,10 +38,12 @@ scenario files. The CLI fronts the management workflow:
      executing it.
    - `--import-scenario <path>` and `--no-run` allow operators to catalogue
      scenarios without starting the engine.
+   - `--validate-scenario <path>` lints a YAML file against the published
+     schema without importing it, enabling CI jobs to gate changes.
    - `--list-scenarios` renders the repository manifest so teams can audit
      registered assets.
-   - `--export-scenario <id> <path>` copies a stored scenario to a destination
-     folder for review or migration.
+   - `--export-scenario <id> <path>` copies a stored scenario and bundles the
+     referenced device XML in a `devices/` directory for review or migration.
 3. **Inline execution** – if YAML is unavailable, pass `--device <id>` along
    with `--event` arguments to exercise the loopback stack directly. Inline
    events require a previously registered device profile.
