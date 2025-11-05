@@ -12,7 +12,9 @@ The simulator is delivered through two complementary channels:
    targets, installs them under `/opt/trdp`, and pre-installs the Python wheel so the container
    can be invoked directly with `trdp_sim_cli`.
 2. **Python package (`trdp-simulator`):** Publishes the CLI tooling to PyPI so teams can embed
-   simulator orchestration into their own automation.
+   simulator orchestration into their own automation. The package now provides the
+   `trdp-sim` CLI for starting, pausing, resuming, and querying runs via the
+   `trdp-sim-api` FastAPI control plane.
 
 The `scripts/` directory contains automation for creating and pushing artefacts:
 

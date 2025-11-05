@@ -17,6 +17,8 @@ simulator runtime, continuous integration, and contributor workflows.
   exporting simulation assets.
 - Scenario exports bundle their referenced device profiles so archived runs can
   be replayed in new environments without manually copying XML assets.
+- Automation interfaces expose a REST API and Python CLI capable of starting,
+  pausing, resuming, and inspecting simulations from scripts or operators.
 
 ## Project Structure
 
@@ -79,6 +81,20 @@ simulator runtime, continuous integration, and contributor workflows.
    Exported bundles place the scenario YAML alongside a `devices/` directory
    containing the referenced XML profiles so the catalogue can be rehydrated on
    another host.
+
+5. Start the automation API server and exercise the CLI controls:
+   ```bash
+   # Launch the FastAPI control plane
+   trdp-sim-api
+
+   # Start a run with explicit PD messages
+   trdp-sim run loopback --message 1001:door-open --message 1002:door-close
+
+   # Pause, resume, and inspect status from separate automation steps
+   trdp-sim pause <run-id>
+   trdp-sim resume <run-id>
+   trdp-sim status <run-id>
+   ```
 
 ## Documentation
 

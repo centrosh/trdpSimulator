@@ -9,3 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Initial changelog scaffold and operational handbook.
 - Docker and Python packaging scripts for deployment.
+- FastAPI automation API with run/pause/resume/status endpoints and a matching
+  CLI for scripting milestone 4 workflows.
+- Simulation controller abstraction and regression tests covering the new
+  automation control plane.

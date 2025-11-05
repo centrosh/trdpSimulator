@@ -219,47 +219,6 @@ RunRecord ScenarioRepository::getRun(const std::string &id) const {
     return it->second;
 }
 
-void ScenarioRepository::recordRun(RunRecord record) {
-    if (record.id.empty()) {
-        throw std::invalid_argument("Run identifier cannot be empty");
-    }
-    if (record.startedAt.empty()) {
-        record.startedAt = isoTimestamp();
-    }
-    if (record.completedAt.empty()) {
-        record.completedAt = record.startedAt;
-    }
-    m_runs.insert_or_assign(record.id, record);
-    persistRunManifest();
-}
-
-std::vector<RunRecord> ScenarioRepository::listRuns() const {
-    std::vector<RunRecord> runs;
-    runs.reserve(m_runs.size());
-    for (const auto &[_, record] : m_runs) {
-        runs.push_back(record);
-    }
-    return runs;
-}
-
-std::vector<RunRecord> ScenarioRepository::listRunsForScenario(const std::string &scenarioId) const {
-    std::vector<RunRecord> runs;
-    for (const auto &[_, record] : m_runs) {
-        if (record.scenarioId == scenarioId) {
-            runs.push_back(record);
-        }
-    }
-    return runs;
-}
-
-RunRecord ScenarioRepository::getRun(const std::string &id) const {
-    const auto it = m_runs.find(id);
-    if (it == m_runs.end()) {
-        throw std::out_of_range("Unknown run identifier: " + id);
-    }
-    return it->second;
-}
-
 void ScenarioRepository::loadManifest() {
     m_records.clear();
     if (!std::filesystem::exists(m_manifestPath)) {

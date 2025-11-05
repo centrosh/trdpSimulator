@@ -65,6 +65,9 @@ contains themed user stories that can be executed independently.
 - **Duration:** 3 sprints
 - **Exit Criteria:** CLI feature parity with engine, API server with
   scenario control endpoints, and UI telemetry dashboards.
+- **Progress:** FastAPI automation server and the Python CLI now support
+  starting, pausing, resuming, and inspecting runs, delivering UI-1 and
+  UI-2 core capabilities on top of the persistence layer.
 
 ### User Stories
 1. *As an operator, I can start, pause, and resume simulations from the

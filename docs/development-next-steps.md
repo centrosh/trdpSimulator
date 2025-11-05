@@ -47,17 +47,17 @@ The repository layer now satisfies the persistence stories outlined in
 4. **Automation hooks:** Listing and replay commands surface through the CLI,
    making historical runs auditable and ready for downstream automation.
 
-## 4. Milestone 4 – UI & Automation Interfaces (Next Focus)
+## 4. Milestone 4 – UI & Automation Interfaces (In Flight)
 
-With the persistence layer complete, the next iteration concentrates on REST
-and UI capabilities (Milestone 4):
+Automation work has started by delivering the REST API and CLI control
+surfaces. The remaining focus items centre on rich visualisation:
 
-- **REST API:** Expose endpoints that list, validate, import, and export both
-  device profiles and scenarios, reusing the shared validation pipeline.
+- **REST API extensions:** Build listing and validation endpoints for device
+  and scenario catalogues on top of the existing FastAPI app.
 - **Web UI integration:** Prototype components that surface repository
   inventories, validation feedback, and historical run artefacts.
-- **Version control:** Evaluate lightweight versioning for both XML and scenario
-  YAML so operators can diff and roll back changes.
+- **Version control:** Evaluate lightweight versioning for both XML and
+  scenario YAML so operators can diff and roll back changes.
 
 ## 5. Align CI/CD and Documentation
 
