@@ -21,7 +21,7 @@ acceptance criteria from the architecture and milestone requirements.
 | Milestone 1 Exit Criteria | Communication + mock TRDP stack | Exercise PD/MD flows end-to-end via in-memory loopback. | Launch mock stack server; publish PD telegrams at configured intervals; verify callback telemetry and MD acknowledgements. |
 | Milestone 2 Exit Criteria | Simulation engine + repository | Validate scenario loading and execution orchestration. | Load YAML scenario with timetable; assert scheduler emits PD/MD traffic via stubbed session manager, records telemetry timeline, and enforces failure triggers. |
 | Milestone 3 Exit Criteria | Repository + persistence | Confirm artefact lifecycle. | Import/export scenario assets; execute run and ensure outputs persisted to configured backend; replay stored run for audit. |
-| Milestone 4 Stories 1 & 2 | CLI/API + engine | Ensure automation interfaces control simulations. | Use CLI to start/pause/resume; verify REST/gRPC adapter issues equivalent commands and receives run status updates. |
+| Milestone 4 Stories 1 & 2 | CLI/API + engine | Ensure automation interfaces control simulations. | Use CLI to start/pause/resume; verify automation API issues equivalent commands, exposes catalogue metadata, and receives run status updates. |
 
 ### 1.3 System / Acceptance Tests
 | Requirement Source | Scenario | Objective | Validation Steps |
@@ -38,7 +38,8 @@ acceptance criteria from the architecture and milestone requirements.
 | Scheduled PD timetable | Milestone 2 requirement for deterministic schedule | Detect regressions in timing offsets and PD payload integrity. | `ctest` target invoking GoogleTest-based fixture with fake TRDP stack; wrap in `pytest` using `subprocess` for CLI smoke. |
 | MD acknowledgement workflow | Milestone 1 MD send/receive | Verify segmentation, retries, and callback wiring. | GoogleTest integration using custom mock harness; fuzz payload sizes with `rapidcheck`. |
 | Fault injection and recovery | Milestone 2 triggers + Milestone 5 resilience | Ensure engine applies faults, telemetry logs events, and redundancy recovers. | Python `pytest` suite driving CLI/API via `asyncio`; record results for snapshot comparison. |
-| Scenario schema validation | Milestone 3 validation | Guard against schema regressions. | `pytest` tests leveraging `jsonschema` to validate sample YAML; integrate with pre-commit hook. |
+| Scenario schema validation | Milestone 3 validation | Guard against schema regressions. | `ctest` target `scenario_schema` exercising the C++ validator over valid/invalid YAML; reuse `trdp_sim_cli --validate-scenario` in CI smoke jobs. |
+| Automation control plane | Milestone 4 CLI/API | Prevent regressions in pause/resume/status workflows. | `pytest` suite covering `SimulationController`, automation API endpoints with the lightweight `TestClient`, catalogue listings, and CLI commands via monkeypatched API client. |
 | Telemetry export pipeline | Milestone 5 observability | Prevent regressions in metrics/log formats. | Integration tests using `pytest` + `pydantic` models to check exported JSON/CSV; golden-file comparisons. |
 
 Framework selections:

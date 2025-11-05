@@ -43,11 +43,10 @@ contains themed user stories that can be executed independently.
 4. *As a developer, I can stub TRDP interactions for offline execution so
    that integration tests can run in CI.*
 
-## Milestone 3 – Scenario Repository & Persistence
+## Milestone 3 – Scenario Repository & Persistence ✅ Completed
 - **Goal:** Persist reusable scenarios and simulation artefacts with
-  validation. The scenario catalogue and CLI management tooling now exist; the
-  remaining work focuses on formal schemas, artefact persistence, and replay
-  workflows.
+  validation. The scenario catalogue and CLI management tooling now bundle
+  device profiles, enforce schemas, and persist run artefacts for replay.
 - **Duration:** 2 sprints
 - **Exit Criteria:** Repository service storing scenarios, schema
   validation, and artefact export CLI.
@@ -60,12 +59,15 @@ contains themed user stories that can be executed independently.
 3. *As a compliance analyst, I can store simulation outputs and replay
    them on demand so that evidence is auditable.*
 
-## Milestone 4 – UI & Automation Interfaces
+## Milestone 4 – UI & Automation Interfaces ✅ Completed
 - **Goal:** Provide CLI, REST, and optional UI controls for running
   simulations and visualising results.
 - **Duration:** 3 sprints
 - **Exit Criteria:** CLI feature parity with engine, API server with
   scenario control endpoints, and UI telemetry dashboards.
+- **Status:** Achieved. The lightweight automation API now exposes run
+  control, scenario/device catalogue queries, schema validation, and an
+  HTML dashboard mirroring CLI capabilities for telemetry monitoring.
 
 ### User Stories
 1. *As an operator, I can start, pause, and resume simulations from the

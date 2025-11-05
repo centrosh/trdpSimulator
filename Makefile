@@ -11,6 +11,7 @@ build: configure
 test: configure
 	cmake --build $(BUILD_DIR)
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
+	python3 -m pytest
 
 clean:
 	rm -rf $(BUILD_DIR)
