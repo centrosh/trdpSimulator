@@ -1,6 +1,7 @@
 #include "trdp_simulator/device/DeviceProfileRepository.hpp"
 #include "trdp_simulator/device/XmlValidator.hpp"
 #include "trdp_simulator/simulation/ScenarioLoader.hpp"
+#include "trdp_simulator/simulation/ScenarioSchemaValidator.hpp"
 
 #include <cassert>
 #include <cstdlib>
@@ -12,12 +13,18 @@ using trdp::device::DeviceProfileRepository;
 using trdp::device::XmlValidator;
 using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioLoader;
+using trdp::simulation::ScenarioSchemaValidator;
 
 namespace {
 
 std::filesystem::path schemaPath() {
     const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
     return repoRoot / "resources/trdp/trdp-config.xsd";
+}
+
+std::filesystem::path scenarioSchemaPath() {
+    const auto repoRoot = std::filesystem::path(__FILE__).parent_path().parent_path();
+    return repoRoot / "resources/scenarios/scenario.schema.yaml";
 }
 
 std::filesystem::path tempDir(const std::string &name) {
@@ -36,7 +43,8 @@ int main() {
     const auto deviceId = repository.registerProfile(schemaPath().parent_path() / "device1.xml");
 
     const auto scenarioRoot = tempDir("scenario-files-");
-    ScenarioLoader loader{repository, scenarioRoot};
+    ScenarioSchemaValidator scenarioValidator{scenarioSchemaPath()};
+    ScenarioLoader loader{repository, scenarioValidator, scenarioRoot};
 
     const auto scenarioPath = scenarioRoot / "door.yaml";
     std::ofstream scenarioFile{scenarioPath};

@@ -7,10 +7,12 @@ interfaces, and telemetry capture.
 """
 
 from .communication.wrapper import TrdpContext, TrdpSessionManager
+from .simulation.controller import SimulationController
 from .simulation.engine import SimulationEngine
 
 __all__ = [
     "SimulationEngine",
+    "SimulationController",
     "TrdpContext",
     "TrdpSessionManager",
 ]

@@ -13,7 +13,9 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
 keywords = ["trdp", "rail", "simulation"]
-dependencies = []
+dependencies = [
+    "fastapi>=0.111",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -21,9 +23,13 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.5",
 ]
+api = [
+    "uvicorn>=0.30",
+]
 
 [project.scripts]
 trdp-sim = "trdp_simulator.cli.main:run_cli"
+trdp-sim-api = "trdp_simulator.api.server:run_api"
 
 [tool.pytest.ini_options]
 minversion = "8.0"

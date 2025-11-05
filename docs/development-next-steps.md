@@ -29,34 +29,35 @@ register devices, manage scenarios, and run loopback simulations end-to-end.
 The next phase builds on this foundation to introduce durable storage and
 replayable artefacts.
 
-## 3. Milestone 3 – Scenario Repository & Persistence
+## 3. Milestone 3 – Scenario Repository & Persistence ✅ Completed
 
-With the catalogue online, focus shifts to the persistence stories outlined in
+The repository layer now satisfies the persistence stories outlined in
 [`docs/milestones.md`](milestones.md#milestone-3--scenario-repository--persistence):
 
-1. **Formal scenario schema:** Publish JSON/YAML schemas and integrate them with
-   the validation pipeline (CLI flag and CI job) so scenario changes are gated by
-   automated checks.
-2. **Run artefact persistence:** Extend `SimulationEngine` to record executed
-   scenarios, diagnostics, and payload traces to disk. Link the artefacts to the
-   scenario manifest so operators can audit historical runs.
-3. **Import/export tooling:** Wrap the repository in high-level commands or
-   services that bundle scenarios with their referenced device profiles, enabling
-   movement between environments.
-4. **Automation hooks:** Expose lightweight APIs or CLI commands to fetch the
-   manifest, retrieve stored runs, and trigger replays, preparing the ground for
-   upcoming REST/UI work.
+1. **Formal scenario schema:** The YAML schema is published under
+   `resources/scenarios/scenario.schema.yaml`, the CLI exposes
+   `--validate-scenario`, and automated tests exercise the validator against
+   both valid and invalid documents.
+2. **Run artefact persistence:** `SimulationEngine` continues to capture
+   executed scenarios, diagnostics, and payload traces and records them in the
+   repository manifest for replay.
+3. **Import/export tooling:** Scenario exports now bundle the referenced device
+   profiles under a `devices/` directory so catalogues can migrate between
+   environments without missing assets.
+4. **Automation hooks:** Listing and replay commands surface through the CLI,
+   making historical runs auditable and ready for downstream automation.
 
-## 4. Build Editing Surfaces for Device & Scenario Configuration
+## 4. Milestone 4 – UI & Automation Interfaces (In Flight)
 
-Parallel to Milestone 3, begin designing REST and UI capabilities (Milestone 4):
+Automation work has started by delivering the REST API and CLI control
+surfaces. The remaining focus items centre on rich visualisation:
 
-- **REST API:** Expose endpoints that list, validate, import, and export both
-  device profiles and scenarios, reusing the shared validation pipeline.
+- **REST API extensions:** Build listing and validation endpoints for device
+  and scenario catalogues on top of the existing FastAPI app.
 - **Web UI integration:** Prototype components that surface repository
   inventories, validation feedback, and historical run artefacts.
-- **Version control:** Evaluate lightweight versioning for both XML and scenario
-  YAML so operators can diff and roll back changes.
+- **Version control:** Evaluate lightweight versioning for both XML and
+  scenario YAML so operators can diff and roll back changes.
 
 ## 5. Align CI/CD and Documentation
 

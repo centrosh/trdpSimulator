@@ -4,6 +4,7 @@
 #include "trdp_simulator/device/XmlValidator.hpp"
 #include "trdp_simulator/simulation/Engine.hpp"
 #include "trdp_simulator/simulation/ScenarioRepository.hpp"
+#include "trdp_simulator/simulation/ScenarioSchemaValidator.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -27,6 +28,8 @@ using trdp::device::XmlValidator;
 using trdp::simulation::Scenario;
 using trdp::simulation::ScenarioEvent;
 using trdp::simulation::ScenarioRepository;
+using trdp::simulation::ScenarioSchemaValidator;
+using trdp::simulation::RunRecord;
 using trdp::simulation::SimulationEngine;
 
 namespace {
@@ -37,11 +40,15 @@ struct CliOptions {
     std::vector<std::filesystem::path> deviceXmls;
     std::vector<std::filesystem::path> importScenarioPaths;
     std::vector<std::pair<std::string, std::filesystem::path>> exportScenarioRequests;
+    std::vector<std::filesystem::path> validateScenarioPaths;
     bool listScenarios{false};
+    bool listRuns{false};
+    std::vector<std::string> listRunsFor;
     bool noRun{false};
     std::string deviceProfileId;
     std::string endpoint{"127.0.0.1"};
     std::vector<ScenarioEvent> events;
+    std::optional<std::string> replayRunId;
 };
 
 [[nodiscard]] std::filesystem::path defaultConfigRoot() {
@@ -187,10 +194,30 @@ CliOptions parseArgs(int argc, char **argv) {
             const std::string id{argv[++i]};
             const std::filesystem::path destination{argv[++i]};
             options.exportScenarioRequests.emplace_back(id, destination);
+        } else if (arg == "--validate-scenario") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--validate-scenario requires a path");
+            }
+            options.validateScenarioPaths.emplace_back(argv[++i]);
         } else if (arg == "--list-scenarios") {
             options.listScenarios = true;
+        } else if (arg == "--list-runs") {
+            options.listRuns = true;
+        } else if (arg == "--list-runs-for") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--list-runs-for requires an id");
+            }
+            options.listRunsFor.emplace_back(argv[++i]);
         } else if (arg == "--no-run") {
             options.noRun = true;
+        } else if (arg == "--replay-run") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--replay-run requires an id");
+            }
+            if (options.replayRunId.has_value()) {
+                throw std::invalid_argument("--replay-run specified multiple times");
+            }
+            options.replayRunId = argv[++i];
         } else if (arg.rfind("--", 0) == 0) {
             throw std::invalid_argument("Unknown argument: " + arg);
         } else {
@@ -201,8 +228,11 @@ CliOptions parseArgs(int argc, char **argv) {
         }
     }
 
-    if (options.scenarioId.empty() && !options.noRun && !options.scenarioFile.has_value() && options.events.empty()) {
-        const bool managementOnly = options.listScenarios || !options.importScenarioPaths.empty() || !options.exportScenarioRequests.empty();
+    if (options.scenarioId.empty() && !options.noRun && !options.scenarioFile.has_value() && options.events.empty() &&
+        !options.replayRunId.has_value()) {
+        const bool managementOnly = options.listScenarios || !options.importScenarioPaths.empty() ||
+                                    !options.exportScenarioRequests.empty() || options.listRuns ||
+                                    !options.listRunsFor.empty() || !options.validateScenarioPaths.empty();
         if (!managementOnly) {
             throw std::invalid_argument("Scenario identifier is required unless --no-run is specified");
         }
@@ -241,6 +271,22 @@ void printScenarioRecords(const ScenarioRepository &repository) {
     }
 }
 
+void printRunRecords(const std::vector<RunRecord> &records, std::string_view heading = "Recorded runs") {
+    if (records.empty()) {
+        std::cout << "No runs recorded." << std::endl;
+        return;
+    }
+    std::cout << heading << ':' << std::endl;
+    for (const auto &record : records) {
+        std::cout << "  - " << record.id << " (scenario=" << record.scenarioId << ", started=" << record.startedAt
+                  << ", success=" << (record.success ? "yes" : "no") << ")" << std::endl;
+        std::cout << "      artefacts: " << record.artefactPath << std::endl;
+        if (!record.detail.empty()) {
+            std::cout << "      detail: " << record.detail << std::endl;
+        }
+    }
+}
+
 Scenario buildInlineScenario(const CliOptions &options) {
     if (options.deviceProfileId.empty()) {
         throw std::invalid_argument("Inline events require --device <profile-id>");
@@ -274,11 +320,13 @@ int main(int argc, char **argv) {
     const auto deviceRoot = configRoot / "devices";
     const auto scenarioRoot = configRoot / "scenarios";
     const auto schemaPath = resolveResourcePath(argv[0], "resources/trdp/trdp-config.xsd");
+    const auto scenarioSchemaPath = resolveResourcePath(argv[0], "resources/scenarios/scenario.schema.yaml");
 
     try {
         XmlValidator validator{schemaPath};
         DeviceProfileRepository deviceRepository{deviceRoot, validator};
-        ScenarioRepository scenarioRepository{scenarioRoot, deviceRepository};
+        ScenarioSchemaValidator scenarioValidator{scenarioSchemaPath};
+        ScenarioRepository scenarioRepository{scenarioRoot, deviceRepository, scenarioValidator};
 
         for (const auto &xml : options.deviceXmls) {
             const auto id = deviceRepository.registerProfile(xml);
@@ -290,8 +338,22 @@ int main(int argc, char **argv) {
             std::cout << "Imported scenario '" << id << "' from " << path << std::endl;
         }
 
+        for (const auto &path : options.validateScenarioPaths) {
+            scenarioValidator.validate(path);
+            std::cout << "Validated scenario file " << path << std::endl;
+        }
+
         if (options.listScenarios) {
             printScenarioRecords(scenarioRepository);
+        }
+
+        if (options.listRuns) {
+            printRunRecords(scenarioRepository.listRuns());
+        }
+        for (const auto &scenarioId : options.listRunsFor) {
+            const auto records = scenarioRepository.listRunsForScenario(scenarioId);
+            const std::string heading = "Runs for scenario '" + scenarioId + "'";
+            printRunRecords(records, heading);
         }
 
         for (const auto &[id, destination] : options.exportScenarioRequests) {
@@ -299,18 +361,23 @@ int main(int argc, char **argv) {
             std::cout << "Exported scenario '" << id << "' to " << destination << std::endl;
         }
 
-        if (options.noRun && !options.scenarioFile.has_value() && options.events.empty() && options.scenarioId.empty()) {
+        if (options.noRun && !options.scenarioFile.has_value() && options.events.empty() && options.scenarioId.empty() &&
+            !options.replayRunId.has_value()) {
             return 0;
         }
 
         const bool runScenario = !options.noRun &&
-                                 (options.scenarioFile.has_value() || !options.events.empty() || !options.scenarioId.empty());
+                                 (options.scenarioFile.has_value() || !options.events.empty() || !options.scenarioId.empty() ||
+                                  options.replayRunId.has_value());
         if (!runScenario) {
             return 0;
         }
 
         Scenario scenario;
-        if (options.scenarioFile.has_value()) {
+        if (options.replayRunId.has_value()) {
+            scenario = scenarioRepository.loadRunScenario(*options.replayRunId);
+            std::cout << "Loaded scenario from run '" << *options.replayRunId << "'" << std::endl;
+        } else if (options.scenarioFile.has_value()) {
             const auto id = scenarioRepository.importScenario(*options.scenarioFile);
             std::cout << "Imported scenario '" << id << "' from " << *options.scenarioFile << std::endl;
             scenario = scenarioRepository.load(id);
@@ -322,7 +389,7 @@ int main(int argc, char **argv) {
 
         Wrapper wrapper{options.endpoint};
         registerLoopbackLogging(wrapper);
-        SimulationEngine engine{wrapper};
+        SimulationEngine engine{wrapper, configRoot / "runs", &scenarioRepository};
 
         try {
             engine.loadScenario(std::move(scenario));
