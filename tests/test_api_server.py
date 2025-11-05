@@ -4,6 +4,7 @@ import time
 
 from fastapi.testclient import TestClient
 
+from trdp_simulator.api.catalog import CatalogService
 from trdp_simulator.api.server import create_app
 from trdp_simulator.simulation.controller import SimulationController
 from trdp_simulator.simulation.engine import RunState
@@ -77,3 +78,45 @@ def test_api_rejects_duplicate_runs() -> None:
         if state in {RunState.COMPLETED, RunState.FAILED}:
             break
         time.sleep(0.05)
+
+
+def test_catalog_endpoints_and_ui(tmp_path) -> None:
+    catalog_root = tmp_path
+    scenario = catalog_root / "demo.yaml"
+    scenario.write_text(
+        "scenario: demo\n"
+        "device: unit1\n"
+        "events:\n"
+        "  - type: pd\n"
+        "    label: start\n"
+        "    com_id: 1\n"
+        "    dataset_id: 1\n",
+        encoding="utf-8",
+    )
+    device = catalog_root / "unit1.xml"
+    device.write_text("<device name='unit1' />", encoding="utf-8")
+
+    catalog = CatalogService(base_path=catalog_root)
+    controller = SimulationController()
+    app = create_app(controller, catalog=catalog)
+    client = TestClient(app)
+
+    scenarios = client.get("/scenarios")
+    assert scenarios.status_code == 200
+    payload = scenarios.json()
+    assert payload["items"][0]["id"] == "demo"
+
+    devices = client.get("/devices")
+    assert devices.status_code == 200
+    assert devices.json()["items"][0]["name"] == "unit1"
+
+    validation = client.post("/scenarios/validate", json={"content": scenario.read_text()})
+    assert validation.status_code == 200
+    assert validation.json()["valid"] is True
+
+    invalid = client.post("/scenarios/validate", json={"content": "device: missing"})
+    assert invalid.status_code == 422
+    assert invalid.json()["valid"] is False
+
+    ui = client.get("/ui")
+    assert "TRDP" in ui.text

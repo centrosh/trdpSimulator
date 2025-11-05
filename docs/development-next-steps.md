@@ -47,19 +47,27 @@ The repository layer now satisfies the persistence stories outlined in
 4. **Automation hooks:** Listing and replay commands surface through the CLI,
    making historical runs auditable and ready for downstream automation.
 
-## 4. Milestone 4 – UI & Automation Interfaces (In Flight)
+## 4. Milestone 4 – UI & Automation Interfaces ✅ Completed
 
-Automation work has started by delivering the REST API and CLI control
-surfaces. The remaining focus items centre on rich visualisation:
+Automation surfaces now cover REST controls, CLI parity, and a lightweight
+HTML dashboard:
 
-- **REST API extensions:** Build listing and validation endpoints for device
-  and scenario catalogues on top of the existing FastAPI app.
-- **Web UI integration:** Prototype components that surface repository
-  inventories, validation feedback, and historical run artefacts.
-- **Version control:** Evaluate lightweight versioning for both XML and
-  scenario YAML so operators can diff and roll back changes.
+- **REST API extensions:** Scenario and device catalogues are exposed via
+  `/scenarios` and `/devices`, and a schema-aware validator enables CI and
+  operator workflows to lint YAML before import.
+- **Web UI integration:** The bundled dashboard (`/ui`) visualises run
+  telemetry, allows quick-start automation, and surfaces catalogue metadata.
+- **CLI parity:** The Python CLI manages runs, lists catalogue assets, and
+  validates scenario files through the same API endpoints.
 
-## 5. Align CI/CD and Documentation
+## 5. Milestone 5 – Observability & Production Hardening (Upcoming)
+
+- Integrate structured logging, metrics, and tracing around automation
+  workflows so production deployments gain insight into simulator health.
+- Harden persistence with retry policies, fault injection coverage, and
+  richer run exports (CSV/JSON) for downstream analytics.
+- Expand CI to execute the new API/UI smoke tests and capture dashboards as
+  artefacts for release reviews.
 
 - Wire the scenario repository tests and schema validators into CI so
   regressions surface automatically.

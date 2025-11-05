@@ -39,3 +39,36 @@ def test_cli_pause_resume_and_status(monkeypatch, capsys) -> None:
     output = capsys.readouterr().out
     assert "state=completed" in output
     assert "pd:1:True" in output
+
+
+def test_cli_catalog_commands(monkeypatch, capsys, tmp_path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_request(url: str, method: str = "GET", payload: dict | None = None) -> dict:
+        captured.setdefault(url, 0)
+        captured[url] = int(captured[url]) + 1
+        if url.endswith("/scenarios"):
+            return {
+                "items": [
+                    {"id": "loop", "device": "device1", "events": 2, "path": "demo.yaml"},
+                ]
+            }
+        if url.endswith("/devices"):
+            return {"items": [{"name": "device1", "path": "device1.xml"}]}
+        if url.endswith("/scenarios/validate"):
+            return {"valid": True, "errors": []}
+        raise AssertionError(f"Unexpected URL {url}")
+
+    monkeypatch.setattr("trdp_simulator.cli.main._api_request", fake_request)
+
+    assert run_cli(["scenarios"]) == 0
+    assert run_cli(["devices"]) == 0
+
+    scenario_file = tmp_path / "scenario.yaml"
+    scenario_file.write_text("scenario: loop\ndevice: device1\nevents:\n  - type: pd\n    label: start\n")
+    assert run_cli(["validate", str(scenario_file)]) == 0
+
+    output = capsys.readouterr().out
+    assert "loop" in output
+    assert "device1" in output
+    assert "Scenario validated successfully" in output

@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from trdp_simulator.communication.wrapper import PdMessage
+from trdp_simulator.api.catalog import CatalogService
 from trdp_simulator.simulation.controller import ControllerStatus, SimulationController
 from trdp_simulator.simulation.engine import RunOptions, RunState
 
@@ -49,11 +51,24 @@ def _status_response(status: ControllerStatus) -> JSONResponse:
     )
 
 
-def create_app(controller: SimulationController | None = None) -> FastAPI:
+def create_app(
+    controller: SimulationController | None = None,
+    catalog: CatalogService | None = None,
+) -> FastAPI:
     """Create a configured FastAPI application."""
 
     controller = controller or SimulationController()
+    catalog = catalog or CatalogService()
     app = FastAPI(title="TRDP Simulator Automation API")
+
+    ui_path = Path(__file__).resolve().parents[3] / "resources" / "ui" / "dashboard.html"
+    ui_content = "<h1>TRDP Simulator</h1>"
+    if ui_path.exists():
+        ui_content = ui_path.read_text(encoding="utf-8")
+
+    @app.get("/ui")
+    def ui_page() -> HTMLResponse:
+        return HTMLResponse(ui_content)
 
     @app.post("/runs")
     def start_run(payload: dict[str, object]) -> JSONResponse:
@@ -112,6 +127,39 @@ def create_app(controller: SimulationController | None = None) -> FastAPI:
         except RuntimeError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return _status_response(status)
+
+    @app.get("/scenarios")
+    def list_scenarios() -> JSONResponse:
+        items = [
+            {
+                "id": summary.identifier,
+                "device": summary.device,
+                "path": str(summary.path),
+                "events": summary.events,
+            }
+            for summary in catalog.list_scenarios()
+        ]
+        return JSONResponse({"items": items})
+
+    @app.get("/devices")
+    def list_devices() -> JSONResponse:
+        items = [
+            {
+                "name": device.name,
+                "path": str(device.path),
+            }
+            for device in catalog.list_devices()
+        ]
+        return JSONResponse({"items": items})
+
+    @app.post("/scenarios/validate")
+    def validate_scenario(payload: dict[str, object]) -> JSONResponse:
+        content = payload.get("content")
+        if not isinstance(content, str):
+            raise HTTPException(status_code=400, detail="content must be a string")
+        valid, errors = catalog.validate_scenario(content)
+        status_code = 200 if valid else 422
+        return JSONResponse({"valid": valid, "errors": errors}, status_code=status_code)
 
     return app
 

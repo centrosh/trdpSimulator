@@ -59,15 +59,15 @@ contains themed user stories that can be executed independently.
 3. *As a compliance analyst, I can store simulation outputs and replay
    them on demand so that evidence is auditable.*
 
-## Milestone 4 – UI & Automation Interfaces
+## Milestone 4 – UI & Automation Interfaces ✅ Completed
 - **Goal:** Provide CLI, REST, and optional UI controls for running
   simulations and visualising results.
 - **Duration:** 3 sprints
 - **Exit Criteria:** CLI feature parity with engine, API server with
   scenario control endpoints, and UI telemetry dashboards.
-- **Progress:** FastAPI automation server and the Python CLI now support
-  starting, pausing, resuming, and inspecting runs, delivering UI-1 and
-  UI-2 core capabilities on top of the persistence layer.
+- **Status:** Achieved. The lightweight automation API now exposes run
+  control, scenario/device catalogue queries, schema validation, and an
+  HTML dashboard mirroring CLI capabilities for telemetry monitoring.
 
 ### User Stories
 1. *As an operator, I can start, pause, and resume simulations from the

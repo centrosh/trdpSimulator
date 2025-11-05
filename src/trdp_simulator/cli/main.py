@@ -6,6 +6,7 @@ import json
 from typing import Iterable
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 
 DEFAULT_API_URL = "http://127.0.0.1:8000"
@@ -44,6 +45,16 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser.add_argument("run_id", help="Run identifier returned by the run command")
     status_parser.add_argument("--api-url", default=DEFAULT_API_URL, help="Automation API endpoint")
 
+    scenarios_parser = subparsers.add_parser("scenarios", help="List known scenarios")
+    scenarios_parser.add_argument("--api-url", default=DEFAULT_API_URL, help="Automation API endpoint")
+
+    devices_parser = subparsers.add_parser("devices", help="List registered devices")
+    devices_parser.add_argument("--api-url", default=DEFAULT_API_URL, help="Automation API endpoint")
+
+    validate_parser = subparsers.add_parser("validate", help="Validate a scenario file via the API")
+    validate_parser.add_argument("path", help="Path to the scenario YAML file")
+    validate_parser.add_argument("--api-url", default=DEFAULT_API_URL, help="Automation API endpoint")
+
     return parser
 
 
@@ -56,7 +67,17 @@ def _api_request(url: str, method: str = "GET", payload: dict[str, object] | Non
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:  # pragma: no cover - exercised via CLI tests
         detail = exc.read().decode("utf-8")
-        raise RuntimeError(f"API error {exc.code}: {detail}") from exc
+        message = detail
+        try:
+            parsed = json.loads(detail)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            if "errors" in parsed and isinstance(parsed["errors"], list):
+                message = "; ".join(str(item) for item in parsed["errors"])
+            elif "detail" in parsed:
+                message = str(parsed["detail"])
+        raise RuntimeError(f"API error {exc.code}: {message}") from exc
     except urllib.error.URLError as exc:  # pragma: no cover - network issues
         raise RuntimeError(f"Failed to reach API: {exc.reason}") from exc
     return json.loads(raw)
@@ -114,6 +135,44 @@ def run_cli(argv: Iterable[str] | None = None) -> int:
             f"Run {response['run_id']} state={response['state']} realtime={response['realtime']}"
             f" telemetry=[{telemetry}]{extra}"
         )
+        return 0
+
+    if args.command == "scenarios":
+        response = _api_request(f"{args.api_url}/scenarios")
+        for item in response.get("items", []):
+            print(
+                f"{item['id']} device={item['device']} events={item['events']}"
+                f" source={item['path']}"
+            )
+        return 0
+
+    if args.command == "devices":
+        response = _api_request(f"{args.api_url}/devices")
+        for item in response.get("items", []):
+            print(f"{item['name']} source={item['path']}")
+        return 0
+
+    if args.command == "validate":
+        try:
+            content = Path(args.path).read_text(encoding="utf-8")
+        except OSError as exc:
+            parser.error(str(exc))
+            return 2
+        try:
+            response = _api_request(
+                f"{args.api_url}/scenarios/validate",
+                method="POST",
+                payload={"content": content},
+            )
+        except RuntimeError as exc:
+            print(f"Validation failed: {exc}")
+            return 1
+        if response.get("errors"):
+            print("Validation completed with warnings:")
+            for item in response["errors"]:
+                print(f" - {item}")
+        else:
+            print("Scenario validated successfully")
         return 0
 
     parser.error("Unknown command")
