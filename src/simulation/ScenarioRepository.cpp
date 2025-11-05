@@ -146,9 +146,10 @@ void ScenarioRepository::exportScenario(const std::string &id, const std::filesy
         throw std::out_of_range("Unknown scenario: " + id);
     }
 
+    const auto &record = it->second;
     std::filesystem::path target = destination;
     if (std::filesystem::is_directory(destination)) {
-        target /= it->second.storedPath.filename();
+        target /= record.storedPath.filename();
     } else if (destination.has_filename() && destination.extension().empty()) {
         target = destination;
         target += ".yaml";
@@ -157,7 +158,65 @@ void ScenarioRepository::exportScenario(const std::string &id, const std::filesy
     if (target.has_parent_path()) {
         std::filesystem::create_directories(target.parent_path());
     }
-    std::filesystem::copy_file(it->second.storedPath, target, std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::copy_file(record.storedPath, target, std::filesystem::copy_options::overwrite_existing);
+
+    const auto deviceRecord = m_deviceRepository.get(record.deviceProfileId);
+    std::filesystem::path bundleRoot;
+    if (std::filesystem::is_directory(destination)) {
+        bundleRoot = destination;
+    } else {
+        bundleRoot = target.parent_path();
+    }
+    if (bundleRoot.empty()) {
+        bundleRoot = std::filesystem::current_path();
+    }
+
+    const auto deviceDirectory = bundleRoot / "devices";
+    std::filesystem::create_directories(deviceDirectory);
+    const auto deviceTarget = deviceDirectory / deviceRecord.storedPath.filename();
+    std::filesystem::copy_file(deviceRecord.storedPath, deviceTarget,
+                               std::filesystem::copy_options::overwrite_existing);
+}
+
+void ScenarioRepository::recordRun(RunRecord record) {
+    if (record.id.empty()) {
+        throw std::invalid_argument("Run identifier cannot be empty");
+    }
+    if (record.startedAt.empty()) {
+        record.startedAt = isoTimestamp();
+    }
+    if (record.completedAt.empty()) {
+        record.completedAt = record.startedAt;
+    }
+    m_runs.insert_or_assign(record.id, record);
+    persistRunManifest();
+}
+
+std::vector<RunRecord> ScenarioRepository::listRuns() const {
+    std::vector<RunRecord> runs;
+    runs.reserve(m_runs.size());
+    for (const auto &[_, record] : m_runs) {
+        runs.push_back(record);
+    }
+    return runs;
+}
+
+std::vector<RunRecord> ScenarioRepository::listRunsForScenario(const std::string &scenarioId) const {
+    std::vector<RunRecord> runs;
+    for (const auto &[_, record] : m_runs) {
+        if (record.scenarioId == scenarioId) {
+            runs.push_back(record);
+        }
+    }
+    return runs;
+}
+
+RunRecord ScenarioRepository::getRun(const std::string &id) const {
+    const auto it = m_runs.find(id);
+    if (it == m_runs.end()) {
+        throw std::out_of_range("Unknown run identifier: " + id);
+    }
+    return it->second;
 }
 
 void ScenarioRepository::recordRun(RunRecord record) {

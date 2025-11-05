@@ -80,6 +80,15 @@ int main() {
     const auto exportPath = tempDir("scenario-export-") / "door_copy.yaml";
     repository.exportScenario(storedId, exportPath);
     assert(std::filesystem::exists(exportPath));
+    const auto exportDevice = exportPath.parent_path() / "devices" / (deviceId + ".xml");
+    assert(std::filesystem::exists(exportDevice));
+
+    const auto exportDir = tempDir("scenario-export-dir-");
+    repository.exportScenario(storedId, exportDir);
+    const auto dirScenarioPath = exportDir / "door.yaml";
+    assert(std::filesystem::exists(dirScenarioPath));
+    const auto dirDevice = exportDir / "devices" / (deviceId + ".xml");
+    assert(std::filesystem::exists(dirDevice));
 
     const auto records = repository.list();
     assert(records.size() == 1);
