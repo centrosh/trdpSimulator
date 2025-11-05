@@ -13,7 +13,9 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
 keywords = ["trdp", "rail", "simulation"]
-dependencies = []
+dependencies = [
+    "fastapi>=0.111",
+]
 
 [project.optional-dependencies]
 dev = [
