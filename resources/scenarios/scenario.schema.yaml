@@ -1,0 +1,10 @@
+# TRDP Simulator scenario schema
+# Defines the supported top-level fields and per-event structure used by the
+# ScenarioSchemaValidator. The syntax is intentionally simple so that the
+# validator can parse the document without an external YAML dependency.
+required_scenario_fields: scenario, device
+allowed_scenario_fields: scenario, device
+required_event_fields: type, label
+allowed_event_fields: type, label, com_id, dataset_id, payload, delay_ms
+enum_event_type: pd, md
+numeric_event_fields: com_id, dataset_id, delay_ms

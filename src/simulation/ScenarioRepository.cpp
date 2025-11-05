@@ -2,6 +2,7 @@
 
 #include "trdp_simulator/device/DeviceProfileRepository.hpp"
 #include "trdp_simulator/simulation/ScenarioParser.hpp"
+#include "trdp_simulator/simulation/ScenarioSchemaValidator.hpp"
 
 #include <chrono>
 #include <cctype>
@@ -33,15 +34,30 @@ namespace {
     return tokens;
 }
 
+[[nodiscard]] std::string serialiseField(std::string value) {
+    for (char &ch : value) {
+        if (ch == '|') {
+            ch = '/';
+        } else if (ch == '\n' || ch == '\r') {
+            ch = ' ';
+        }
+    }
+    return value;
+}
+
 } // namespace
 
-ScenarioRepository::ScenarioRepository(std::filesystem::path root, device::DeviceProfileRepository &deviceRepository)
-    : m_root(std::move(root)), m_manifestPath(m_root / "manifest.db"), m_deviceRepository(deviceRepository) {
+ScenarioRepository::ScenarioRepository(std::filesystem::path root, device::DeviceProfileRepository &deviceRepository,
+                                       ScenarioSchemaValidator &schemaValidator)
+    : m_root(std::move(root)), m_manifestPath(m_root / "manifest.db"), m_runManifestPath(m_root / "runs.db"),
+      m_deviceRepository(deviceRepository), m_schemaValidator(schemaValidator) {
     std::filesystem::create_directories(m_root);
     loadManifest();
+    loadRunManifest();
 }
 
 std::string ScenarioRepository::importScenario(const std::filesystem::path &path) {
+    m_schemaValidator.validate(path);
     const Scenario scenario = ScenarioParser::parse(path, m_deviceRepository);
 
     auto candidateId = sanitiseId(scenario.id);
@@ -110,7 +126,18 @@ Scenario ScenarioRepository::load(const std::string &id) const {
     if (it == m_records.end()) {
         throw std::out_of_range("Unknown scenario: " + id);
     }
+    m_schemaValidator.validate(it->second.storedPath);
     return ScenarioParser::parse(it->second.storedPath, m_deviceRepository);
+}
+
+Scenario ScenarioRepository::loadRunScenario(const std::string &runId) const {
+    const auto it = m_runs.find(runId);
+    if (it == m_runs.end()) {
+        throw std::out_of_range("Unknown run identifier: " + runId);
+    }
+    const auto scenarioPath = it->second.artefactPath / "scenario.yaml";
+    m_schemaValidator.validate(scenarioPath);
+    return ScenarioParser::parse(scenarioPath, m_deviceRepository);
 }
 
 void ScenarioRepository::exportScenario(const std::string &id, const std::filesystem::path &destination) const {
@@ -131,6 +158,47 @@ void ScenarioRepository::exportScenario(const std::string &id, const std::filesy
         std::filesystem::create_directories(target.parent_path());
     }
     std::filesystem::copy_file(it->second.storedPath, target, std::filesystem::copy_options::overwrite_existing);
+}
+
+void ScenarioRepository::recordRun(RunRecord record) {
+    if (record.id.empty()) {
+        throw std::invalid_argument("Run identifier cannot be empty");
+    }
+    if (record.startedAt.empty()) {
+        record.startedAt = isoTimestamp();
+    }
+    if (record.completedAt.empty()) {
+        record.completedAt = record.startedAt;
+    }
+    m_runs.insert_or_assign(record.id, record);
+    persistRunManifest();
+}
+
+std::vector<RunRecord> ScenarioRepository::listRuns() const {
+    std::vector<RunRecord> runs;
+    runs.reserve(m_runs.size());
+    for (const auto &[_, record] : m_runs) {
+        runs.push_back(record);
+    }
+    return runs;
+}
+
+std::vector<RunRecord> ScenarioRepository::listRunsForScenario(const std::string &scenarioId) const {
+    std::vector<RunRecord> runs;
+    for (const auto &[_, record] : m_runs) {
+        if (record.scenarioId == scenarioId) {
+            runs.push_back(record);
+        }
+    }
+    return runs;
+}
+
+RunRecord ScenarioRepository::getRun(const std::string &id) const {
+    const auto it = m_runs.find(id);
+    if (it == m_runs.end()) {
+        throw std::out_of_range("Unknown run identifier: " + id);
+    }
+    return it->second;
 }
 
 void ScenarioRepository::loadManifest() {
@@ -169,6 +237,47 @@ void ScenarioRepository::persistManifest() const {
     for (const auto &[_, record] : m_records) {
         stream << record.id << '|' << record.storedPath.string() << '|' << record.deviceProfileId << '|' << record.checksum
                << '|' << record.createdAt << '|' << record.updatedAt << '\n';
+    }
+}
+
+void ScenarioRepository::loadRunManifest() {
+    m_runs.clear();
+    if (!std::filesystem::exists(m_runManifestPath)) {
+        return;
+    }
+
+    std::ifstream stream{m_runManifestPath};
+    std::string line;
+    while (std::getline(stream, line)) {
+        line = trim(line);
+        if (line.empty() || line.starts_with('#')) {
+            continue;
+        }
+        const auto tokens = split(line, '|');
+        if (tokens.size() < 7) {
+            continue;
+        }
+        RunRecord record{};
+        record.id = tokens[0];
+        record.artefactPath = tokens[1];
+        record.scenarioId = tokens[2];
+        record.startedAt = tokens[3];
+        record.completedAt = tokens[4];
+        record.success = tokens[5] == "1";
+        record.detail = tokens[6];
+        if (!record.id.empty()) {
+            m_runs.insert_or_assign(record.id, std::move(record));
+        }
+    }
+}
+
+void ScenarioRepository::persistRunManifest() const {
+    std::ofstream stream{m_runManifestPath, std::ios::trunc};
+    stream << "# id|artefactPath|scenarioId|startedAt|completedAt|success|detail\n";
+    for (const auto &[_, record] : m_runs) {
+        stream << record.id << '|' << record.artefactPath.string() << '|' << record.scenarioId << '|' << record.startedAt
+               << '|' << record.completedAt << '|' << (record.success ? "1" : "0") << '|' << serialiseField(record.detail)
+               << '\n';
     }
 }
 
